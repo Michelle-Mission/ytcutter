@@ -1,6 +1,8 @@
 package app.ytcutter.ui
 
 import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +23,7 @@ import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Login
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -38,11 +41,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.ytcutter.data.Action
 import app.ytcutter.data.DownloadState
+import app.ytcutter.data.Downloads
 
 @Composable
 fun DownloadsScreen(state: DownloadState, onCancel: () -> Unit) {
     val context = LocalContext.current
+    val loginLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { Downloads.retry(context) }
 
     Column(
         modifier = Modifier
@@ -89,7 +97,14 @@ fun DownloadsScreen(state: DownloadState, onCancel: () -> Unit) {
                     }
                 }
             )
-            is DownloadState.Failed -> FailedCard(state.message)
+            is DownloadState.Failed -> FailedCard(
+                message = state.message,
+                action = state.action,
+                onLogin = {
+                    loginLauncher.launch(Intent(context, CookieLoginActivity::class.java))
+                },
+                onRetry = { Downloads.retry(context) }
+            )
             DownloadState.Canceled -> StatusCard(
                 icon = Icons.Default.Cancel,
                 title = "Dibatalkan",
@@ -222,14 +237,67 @@ private fun DoneCard(title: String, onOpen: () -> Unit, onShare: () -> Unit) {
 }
 
 @Composable
-private fun FailedCard(message: String) {
-    StatusCard(
-        icon = Icons.Default.ErrorOutline,
-        title = "Gagal",
-        message = message,
-        container = MaterialTheme.colorScheme.errorContainer,
-        content = MaterialTheme.colorScheme.onErrorContainer
-    )
+private fun FailedCard(
+    message: String,
+    action: Action,
+    onLogin: () -> Unit,
+    onRetry: () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        ),
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(18.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.ErrorOutline,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    "Gagal",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+            if (action == Action.IMPORT_COOKIES) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Login sekali di YouTube, lalu coba lagi — cookies tersimpan otomatis.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+            Spacer(Modifier.height(14.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (action == Action.IMPORT_COOKIES) {
+                    Button(onClick = onLogin, shape = MaterialTheme.shapes.small) {
+                        Icon(
+                            Icons.Default.Login,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Login YouTube")
+                    }
+                }
+                OutlinedButton(onClick = onRetry, shape = MaterialTheme.shapes.small) {
+                    Text("Coba lagi")
+                }
+            }
+        }
+    }
 }
 
 @Composable

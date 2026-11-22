@@ -249,13 +249,14 @@ fun SettingsScreen(engine: EngineState) {
                 Spacer(Modifier.height(8.dp))
                 Bullet("Potongan video/audio diambil ulang dari sumber, bukan dipotong lokal — hasil tetap utuh tanpa re-encode untuk audio, video dipotong cepat.")
                 Bullet("YouTube kadang menantang dengan CAPTCHA; aplikasi ini tidak memecahkannya. Buka YouTube di browser, lalu ulangi.")
+                Bullet("Login YouTube cuma sekali: buka, login, tutup — cookies tersimpan sendiri.")
                 Bullet("Gunakan hanya untuk konten yang boleh kamu unduh.")
             }
         }
 
         Spacer(Modifier.height(18.dp))
         Text(
-            "YT Cutter · 0.1.6 · arm64-v8a",
+            "YT Cutter · 0.1.7 · arm64-v8a",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.fillMaxWidth(),

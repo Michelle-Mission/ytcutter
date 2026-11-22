@@ -70,6 +70,14 @@ object YtDlpRepo {
         return "Gagal menyiapkan mesin — $chain"
     }
 
+    suspend fun autoUpdateOnce(context: Context) {
+        if (hasCheckedUpdate(context)) return
+        val result = update(context)
+        if (result == "yt-dlp diperbarui" || result == "yt-dlp sudah terbaru") {
+            markUpdateChecked(context)
+        }
+    }
+
     fun hasCheckedUpdate(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getBoolean(KEY_UPDATED, false)
@@ -115,6 +123,8 @@ object YtDlpRepo {
                     addOption("-J")
                     addOption("--no-playlist")
                     addOption("--no-warnings")
+                    addOption("--socket-timeout", "15")
+                    addOption("--extractor-retries", "1")
                     CookieStore.path(context)?.let { addOption("--cookies", it) }
                 }
                 val response = YoutubeDL.getInstance().execute(request)

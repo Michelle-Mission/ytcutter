@@ -241,6 +241,12 @@ private fun MainContent() {
     val scope = rememberCoroutineScope()
 
     var homeState by remember { mutableStateOf<HomeState>(HomeState.Idle) }
+
+    LaunchedEffect(Unit) {
+        if (!Downloads.isRunning()) {
+            YtDlpRepo.autoUpdateOnce(context.applicationContext)
+        }
+    }
     var tab by remember { mutableIntStateOf(0) }
     var showFormat by remember { mutableStateOf(false) }
     val downloadState by Downloads.state.collectAsStateWithLifecycle()
@@ -294,7 +300,6 @@ private fun MainContent() {
                             }
                         }
                     },
-                    onOpenSettings = { tab = 2 },
                     onChooseFormat = { showFormat = true }
                 )
                 1 -> DownloadsScreen(

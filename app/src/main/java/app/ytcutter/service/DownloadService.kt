@@ -116,7 +116,7 @@ class DownloadService : Service() {
             }
             if (exit != 0 || !outFile.exists() || outFile.length() == 0L) {
                 val mapped = ErrorMapper.map(lastLine)
-                finish(DownloadState.Failed(mapped.message), "Gagal: ${mapped.message}")
+                finish(DownloadState.Failed(mapped.message, mapped.action), "Gagal: ${mapped.message}")
                 return
             }
             val displayName = FileNames.displayName(title, start, end, ext)
@@ -131,7 +131,7 @@ class DownloadService : Service() {
                 finish(DownloadState.Canceled, "Dibatalkan")
             } else {
                 val mapped = ErrorMapper.map(e.message ?: "")
-                finish(DownloadState.Failed(mapped.message), "Gagal: ${mapped.message}")
+                finish(DownloadState.Failed(mapped.message, mapped.action), "Gagal: ${mapped.message}")
             }
         } finally {
             outDir.deleteRecursively()

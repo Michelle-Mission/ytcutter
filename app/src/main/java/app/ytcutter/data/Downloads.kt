@@ -13,7 +13,10 @@ sealed interface DownloadState {
     data object Idle : DownloadState
     data class Running(val title: String, val progress: Float, val detail: String) : DownloadState
     data class Done(val title: String, val uri: Uri) : DownloadState
-    data class Failed(val message: String) : DownloadState
+    data class Failed(
+        val message: String,
+        val action: Action = Action.NONE
+    ) : DownloadState
     data object Canceled : DownloadState
 }
 
@@ -37,11 +40,24 @@ object Downloads {
     @Volatile
     private var currentProcessId: String? = null
 
+    @Volatile
+    private var lastRequest: DownloadRequest? = null
+
+    @Volatile
+    private var lastTitle: String = ""
+
     fun isRunning(): Boolean = _state.value is DownloadState.Running
+
+    fun retry(context: Context): Boolean {
+        val request = lastRequest ?: return false
+        return start(context, request, lastTitle)
+    }
 
     fun start(context: Context, request: DownloadRequest, title: String): Boolean {
         if (isRunning()) return false
         cancelRequested = false
+        lastRequest = request
+        lastTitle = title
         val processId = YtDlpRepo.newProcessId()
         currentProcessId = processId
         val intent = Intent(context, DownloadService::class.java).apply {

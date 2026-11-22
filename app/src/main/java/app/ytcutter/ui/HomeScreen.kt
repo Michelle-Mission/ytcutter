@@ -28,13 +28,11 @@ import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -73,7 +71,6 @@ sealed interface HomeState {
 fun HomeScreen(
     state: HomeState,
     onSubmit: (String) -> Unit,
-    onOpenSettings: () -> Unit,
     onChooseFormat: () -> Unit
 ) {
     val clipboard = LocalClipboardManager.current
@@ -87,18 +84,13 @@ fun HomeScreen(
             .padding(horizontal = 20.dp)
             .padding(top = 20.dp, bottom = 28.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("YT Cutter", style = MaterialTheme.typography.headlineSmall)
-                Text(
-                    "Potong video YouTube tanpa unduh penuh",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            FilledTonalIconButton(onClick = onOpenSettings, shape = MaterialTheme.shapes.medium) {
-                Icon(Icons.Default.Settings, contentDescription = "Pengaturan")
-            }
+        Column {
+            Text("YT Cutter", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                "Potong video YouTube tanpa unduh penuh",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
 
         Spacer(Modifier.height(24.dp))

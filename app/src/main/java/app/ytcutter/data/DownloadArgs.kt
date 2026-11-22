@@ -31,6 +31,11 @@ object DownloadArgs {
             args += "--merge-output-format" to "mp4"
         }
 
+        args += "--concurrent-fragments" to "8"
+        args += "--retries" to "2"
+        args += "--fragment-retries" to "2"
+        args += "--socket-timeout" to "20"
+        args += "--no-mtime" to null
         args += "--download-sections" to "*${sectionTime(req.start)}-${sectionTime(req.end)}"
         if (!req.quality.isAudio) args += "--force-keyframes-at-cuts" to null
         args += "--no-playlist" to null

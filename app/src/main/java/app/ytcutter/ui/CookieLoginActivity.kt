@@ -9,6 +9,7 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -26,6 +28,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -41,14 +44,23 @@ import app.ytcutter.ui.theme.YtCutterTheme
 class CookieLoginActivity : ComponentActivity() {
 
     private val captured = LinkedHashMap<String, CookieRecord>()
+    private var webView: WebView? = null
+    private var cookieCount by mutableIntStateOf(0)
+    private var saving by mutableStateOf(false)
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                saveAndFinish()
+            }
+        })
+
         setContent {
             YtCutterTheme {
                 Surface(Modifier.fillMaxSize()) {
-                    var count by remember { mutableIntStateOf(0) }
                     Column(Modifier.fillMaxSize()) {
                         Row(
                             modifier = Modifier
@@ -56,36 +68,33 @@ class CookieLoginActivity : ComponentActivity() {
                                 .padding(horizontal = 8.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            IconButton(onClick = { finish() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
+                            IconButton(onClick = { saveAndFinish() }) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Kembali & simpan"
+                                )
                             }
-                            Text(
-                                "Login YouTube",
-                                style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.weight(1f)
-                            )
+                            Column(Modifier.weight(1f)) {
+                                Text("Login YouTube", style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    "Login, lalu tutup halaman ini",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                             TextButton(
-                                onClick = {
-                                    if (save()) {
-                                        setResult(RESULT_OK)
-                                        finish()
-                                    }
-                                }
-                            ) { Text("Selesai") }
+                                onClick = { saveAndFinish() },
+                                enabled = !saving
+                            ) { Text(if (saving) "Menyimpan…" else "Selesai") }
                         }
-                        Text(
-                            "Login, lalu tap Selesai. Cookies hanya disimpan di perangkat ini.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp)
-                        )
+                        if (saving) {
+                            LinearProgressIndicator(Modifier.fillMaxWidth())
+                        }
                         AndroidView(
                             modifier = Modifier.weight(1f),
                             factory = { context ->
                                 WebView(context).apply {
+                                    webView = this
                                     settings.javaScriptEnabled = true
                                     settings.domStorageEnabled = true
                                     settings.databaseEnabled = true
@@ -97,28 +106,20 @@ class CookieLoginActivity : ComponentActivity() {
                                             view: WebView,
                                             request: WebResourceRequest
                                         ): WebResourceResponse? {
-                                            val host = request.url.host ?: return null
-                                            val header = request.requestHeaders?.get("Cookie") ?: return null
-                                            val domain = when {
-                                                host.endsWith("youtube.com") -> ".youtube.com"
-                                                host.endsWith("google.com") -> ".google.com"
-                                                else -> return null
-                                            }
-                                            CookieExport.fromCookieHeader(header, domain, expiry())
-                                                .forEach { captured["${it.domain}|${it.name}"] = it }
-                                            count = captured.size
+                                            captureHeaders(request)
                                             return null
                                         }
                                     }
-                                    loadUrl(
-                                        "https://accounts.google.com/ServiceLogin" +
-                                            "?continue=https%3A%2F%2Fm.youtube.com%2F"
-                                    )
+                                    loadUrl("https://m.youtube.com/")
                                 }
                             }
                         )
                         Text(
-                            if (count > 0) "$count cookies tertangkap" else "Belum ada cookies tertangkap",
+                            when {
+                                saving -> "Menyimpan cookies…"
+                                cookieCount > 0 -> "$cookieCount cookies tertangkap · tutup untuk menyimpan"
+                                else -> "Belum ada cookies — login dulu"
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
@@ -132,21 +133,39 @@ class CookieLoginActivity : ComponentActivity() {
         }
     }
 
-    private fun save(): Boolean {
+    private fun captureHeaders(request: WebResourceRequest) {
+        val host = request.url.host ?: return
+        val header = request.requestHeaders?.get("Cookie") ?: return
+        val domain = when {
+            host.endsWith("youtube.com") -> ".youtube.com"
+            host.endsWith("google.com") -> ".google.com"
+            else -> return
+        }
+        CookieExport.fromCookieHeader(header, domain, expiry())
+            .forEach { captured["${it.domain}|${it.name}"] = it }
+        cookieCount = captured.count { it.key.startsWith(".youtube.com") }
+    }
+
+    private fun saveAndFinish() {
+        if (saving) return
+        saving = true
         val manager = CookieManager.getInstance()
         manager.flush()
-        listOf(".youtube.com" to "https://www.youtube.com", ".google.com" to "https://accounts.google.com")
-            .forEach { (domain, url) ->
-                manager.getCookie(url)?.let { header ->
-                    CookieExport.fromCookieHeader(header, domain, expiry())
-                        .forEach { captured["${it.domain}|${it.name}"] = it }
-                }
+        listOf(
+            ".youtube.com" to "https://www.youtube.com",
+            ".google.com" to "https://accounts.google.com"
+        ).forEach { (domain, url) ->
+            manager.getCookie(url)?.let { header ->
+                CookieExport.fromCookieHeader(header, domain, expiry())
+                    .forEach { captured["${it.domain}|${it.name}"] = it }
             }
-        if (captured.isEmpty()) return false
-        return CookieStore.saveText(
-            this,
-            CookieExport.toNetscape(captured.values)
-        )
+        }
+        if (captured.isNotEmpty()) {
+            CookieStore.saveText(this, CookieExport.toNetscape(captured.values))
+            setResult(RESULT_OK)
+        }
+        webView?.stopLoading()
+        finish()
     }
 
     private fun expiry(): Long = System.currentTimeMillis() / 1000 + 365L * 24 * 3600

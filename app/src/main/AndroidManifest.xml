@@ -12,6 +12,7 @@
         android:extractNativeLibs="true"
         android:label="YT Cutter"
         android:supportsRtl="true"
+        android:usesCleartextTraffic="false"
         android:theme="@style/Theme.YtCutter">
 
         <activity
