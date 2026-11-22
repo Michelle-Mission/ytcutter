@@ -14,16 +14,10 @@ android {
         applicationId = "app.ytcutter"
         minSdk = 29
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
-    }
-
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("arm64-v8a")
-            isUniversalApk = false
+        versionCode = 5
+        versionName = "0.1.5"
+        ndk {
+            abiFilters += "arm64-v8a"
         }
     }
 
@@ -33,14 +27,21 @@ android {
             storePassword = "ytcutter"
             keyAlias = "ytcutter"
             keyPassword = "ytcutter"
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
         }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            signingConfig = signingConfigs.getByName("dev")
+            isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig = if (rootProject.file("dev.keystore").exists()) {
+                signingConfigs.getByName("dev")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

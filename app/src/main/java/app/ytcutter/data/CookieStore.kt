@@ -35,6 +35,24 @@ object CookieStore {
         }
     }.getOrDefault(false)
 
+    fun saveText(context: Context, text: String): Boolean = runCatching {
+        val target = file(context)
+        val temp = File(context.filesDir, "$FILE_NAME.tmp")
+        temp.writeText(text)
+        val ok = temp.length() > 0
+        if (ok) {
+            target.delete()
+            temp.renameTo(target)
+        } else {
+            temp.delete()
+        }
+        ok
+    }.getOrDefault(false)
+
+    fun load(context: Context): String? = runCatching {
+        file(context).takeIf { it.exists() }?.readText()
+    }.getOrNull()
+
     fun clear(context: Context) {
         file(context).delete()
     }

@@ -24,6 +24,13 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ui.CookieLoginActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:label="Login YouTube"
+            android:theme="@style/Theme.YtCutter" />
+
         <service
             android:name=".service.DownloadService"
             android:exported="false"

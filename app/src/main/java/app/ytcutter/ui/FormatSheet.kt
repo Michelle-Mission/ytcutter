@@ -7,18 +7,24 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RangeSlider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -62,10 +68,12 @@ fun FormatSheet(
 
     val selectable = Range.isSelectable(duration)
     val valid = quality != null && selectable && end > start + 1
+    val clipLength = (end - start).coerceAtLeast(0)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier
@@ -80,31 +88,49 @@ fun FormatSheet(
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                "Durasi ${TimeCode.format(info.durationSec)}",
+                "Durasi ${TimeCode.format(info.durationSec)} · ${options.size} pilihan",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(Modifier.height(16.dp))
-            Text("Resolusi", style = MaterialTheme.typography.labelLarge)
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(22.dp))
+            SectionLabel("Resolusi")
+            Spacer(Modifier.height(10.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(options) { option ->
                     FilterChip(
                         selected = option == quality,
                         onClick = { quality = option },
-                        label = { Text(option.label) }
+                        label = { Text(option.label) },
+                        shape = MaterialTheme.shapes.small,
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                        )
                     )
                 }
             }
 
-            Spacer(Modifier.height(20.dp))
-            Text("Rentang", style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.height(22.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SectionLabel("Rentang", Modifier.weight(1f))
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Text(
+                        TimeCode.format(clipLength),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
+            }
             if (!selectable) {
                 Spacer(Modifier.height(8.dp))
                 Text(
                     "Video terlalu pendek untuk dipotong (butuh minimal 3 detik).",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
             }
@@ -132,6 +158,7 @@ fun FormatSheet(
                     onValueChange = { startText = it },
                     label = { Text("Mulai") },
                     singleLine = true,
+                    shape = MaterialTheme.shapes.small,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Number,
                         imeAction = ImeAction.Done
@@ -158,6 +185,7 @@ fun FormatSheet(
                     onValueChange = { endText = it },
                     label = { Text("Akhir") },
                     singleLine = true,
+                    shape = MaterialTheme.shapes.small,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Number,
                         imeAction = ImeAction.Done
@@ -180,7 +208,7 @@ fun FormatSheet(
                 )
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(22.dp))
             Button(
                 enabled = valid,
                 onClick = {
@@ -188,13 +216,25 @@ fun FormatSheet(
                     focus.clearFocus()
                     onStart(q, start, end)
                 },
-                modifier = Modifier.fillMaxWidth()
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
             ) {
-                Text(
-                    "Ambil ${TimeCode.format((end - start).coerceAtLeast(0))} · " +
-                        (quality?.label ?: "-")
-                )
+                Icon(Icons.Default.ContentCut, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Ambil ${TimeCode.format(clipLength)} · ${quality?.label ?: "-"}")
             }
         }
     }
+}
+
+@Composable
+private fun SectionLabel(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier
+    )
 }

@@ -11,7 +11,8 @@ rentang detik, hasilnya masuk galeri. Mesin: `yt-dlp` + `ffmpeg` yang dibundel
 - Tandai detik awal–akhir (dual slider + isian `mm:ss`); hasil langsung terpotong.
 - Progress nyata, batal, buka/bagikan hasil.
 - Unduhan lanjut saat app di background (foreground service).
-- Import `cookies.txt` untuk video private/age-restricted/verifikasi.
+- Login YouTube lewat WebView (cookies HttpOnly ikut tertangkap), atau impor `cookies.txt`,
+  untuk video private/age-restricted/verifikasi.
 - Update `yt-dlp` dari Pengaturan tanpa memasang APK baru.
 
 ## Build
@@ -37,8 +38,8 @@ adb install -r app/build/outputs/apk/release/app-arm64-v8a-release.apk
 
 App ini **tidak** memecahkan CAPTCHA dan tidak memakai layanan solver. Yang dipakai:
 
-1. **Cookies login.** Ekspor `cookies.txt` dari browser (ekstensi "Get cookies.txt"),
-   lalu Pengaturan → Impor cookies.txt. Ini menyelesaikan hampir semua challenge,
+1. **Cookies login.** Pengaturan → Login YouTube (WebView), atau impor `cookies.txt`
+   hasil ekspor browser. Ini menyelesaikan hampir semua challenge,
    video private, dan age-gate.
 2. **Fallback client yt-dlp** (`visionos,android_vr,tv`) dan update `yt-dlp` terbaru.
 

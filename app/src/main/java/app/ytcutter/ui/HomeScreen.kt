@@ -1,6 +1,14 @@
 package app.ytcutter.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,19 +17,27 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,14 +49,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ytcutter.core.TimeCode
+import app.ytcutter.ui.components.ShimmerBox
 import app.ytcutter.data.VideoInfo
 import coil3.compose.AsyncImage
 
@@ -51,7 +69,6 @@ sealed interface HomeState {
     data class Loaded(val info: VideoInfo, val url: String) : HomeState
 }
 
-
 @Composable
 fun HomeScreen(
     state: HomeState,
@@ -61,98 +78,237 @@ fun HomeScreen(
 ) {
     val clipboard = LocalClipboardManager.current
     var text by remember { mutableStateOf("") }
+    val loading = state is HomeState.Loading
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp)
+            .padding(horizontal = 20.dp)
+            .padding(top = 20.dp, bottom = 28.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "YT Cutter",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(onClick = onOpenSettings) {
+            Column(Modifier.weight(1f)) {
+                Text("YT Cutter", style = MaterialTheme.typography.headlineSmall)
+                Text(
+                    "Potong video YouTube tanpa unduh penuh",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            FilledTonalIconButton(onClick = onOpenSettings, shape = MaterialTheme.shapes.medium) {
                 Icon(Icons.Default.Settings, contentDescription = "Pengaturan")
             }
         }
-        Spacer(Modifier.height(16.dp))
+
+        Spacer(Modifier.height(24.dp))
 
         OutlinedTextField(
             value = text,
             onValueChange = { text = it },
-            label = { Text("URL YouTube") },
+            label = { Text("URL video") },
             placeholder = { Text("https://youtu.be/…") },
             singleLine = true,
+            shape = MaterialTheme.shapes.medium,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Uri,
                 imeAction = ImeAction.Go
             ),
+            keyboardActions = KeyboardActions(onGo = { onSubmit(text.trim()) }),
+            trailingIcon = {
+                IconButton(onClick = {
+                    clipboard.getText()?.text?.let { if (it.isNotBlank()) text = it.trim() }
+                }) {
+                    Icon(Icons.Default.ContentPaste, contentDescription = "Tempel")
+                }
+            },
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(Modifier.height(8.dp))
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(
-                enabled = state !is HomeState.Loading,
-                onClick = {
-                    clipboard.getText()?.text?.let {
-                        if (it.isNotBlank()) text = it.trim()
-                    }
-                }
-            ) { Text("Tempel") }
+        Spacer(Modifier.height(12.dp))
 
-            Button(
-                enabled = text.isNotBlank() && state !is HomeState.Loading,
-                onClick = { onSubmit(text.trim()) },
-                modifier = Modifier.weight(1f)
-            ) { Text("Ambil info") }
+        Button(
+            enabled = text.isNotBlank() && !loading,
+            onClick = { onSubmit(text.trim()) },
+            shape = MaterialTheme.shapes.medium,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+        ) {
+            Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Ambil info")
         }
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(24.dp))
 
-        when (state) {
-            HomeState.Idle -> Text(
-                "Tempel tautan video, lalu tandai detik awal dan akhir.",
-                style = MaterialTheme.typography.bodyMedium,
+        AnimatedContent(
+            targetState = state,
+            transitionSpec = {
+                (fadeIn(tween(220)) + slideInVertically(tween(220)) { it / 14 })
+                    .togetherWith(fadeOut(tween(120)))
+            },
+            label = "home-state"
+        ) { current ->
+            when (current) {
+                HomeState.Idle -> EmptyHint()
+
+                HomeState.Loading -> Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    shape = MaterialTheme.shapes.large,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(Modifier.padding(14.dp)) {
+                        ShimmerBox(
+                            Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(16f / 9f),
+                            MaterialTheme.shapes.medium
+                        )
+                        Spacer(Modifier.height(14.dp))
+                        ShimmerBox(
+                            Modifier
+                                .fillMaxWidth(0.9f)
+                                .height(16.dp)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        ShimmerBox(
+                            Modifier
+                                .fillMaxWidth(0.55f)
+                                .height(12.dp)
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                "Mengambil info video…",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                is HomeState.Error -> Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    ),
+                    shape = MaterialTheme.shapes.large,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(Modifier.padding(20.dp)) {
+                        Icon(
+                            Icons.Default.ErrorOutline,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                "Tidak bisa lanjut",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                current.message,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
+                }
+
+                is HomeState.Loaded -> VideoCard(current.info, onChooseFormat)
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyHint() {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 32.dp, horizontal = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                Icons.Default.Movie,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(34.dp)
+            )
+            Spacer(Modifier.height(12.dp))
+            Text("Tempel tautan video", style = MaterialTheme.typography.titleSmall)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Setelah info muncul, pilih resolusi dan tandai detik awal–akhir.",
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-
-            HomeState.Loading -> Row(verticalAlignment = Alignment.CenterVertically) {
-                CircularProgressIndicator()
-                Spacer(Modifier.width(12.dp))
-                Text("Mengambil info video…")
-            }
-
-            is HomeState.Error -> Card {
-                Column(Modifier.padding(16.dp)) {
-                    Text("Gagal", style = MaterialTheme.typography.titleMedium)
-                    Spacer(Modifier.height(6.dp))
-                    Text(state.message, style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-
-            is HomeState.Loaded -> VideoCard(state.info, onChooseFormat)
         }
     }
 }
 
 @Composable
 private fun VideoCard(info: VideoInfo, onChooseFormat: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Column {
             info.thumbnailUrl?.let { url ->
-                AsyncImage(
-                    model = url,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
+                Box(
+                    Modifier
                         .fillMaxWidth()
                         .aspectRatio(16f / 9f)
-                        .clip(MaterialTheme.shapes.medium)
-                )
+                        .clip(MaterialTheme.shapes.large)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    AsyncImage(
+                        model = url,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.BottomCenter)
+                            .height(64.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color.Transparent, Color(0x99000000))
+                                )
+                            )
+                    )
+                    Surface(
+                        color = Color(0xCC000000),
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(10.dp)
+                    ) {
+                        Text(
+                            TimeCode.format(info.durationSec),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                }
             }
             Column(Modifier.padding(16.dp)) {
                 Text(
@@ -161,17 +317,39 @@ private fun VideoCard(info: VideoInfo, onChooseFormat: () -> Unit) {
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    TimeCode.format(info.durationSec),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(12.dp))
-                Button(onClick = onChooseFormat, modifier = Modifier.fillMaxWidth()) {
-                    Text("Pilih resolusi & rentang")
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    InfoPill("${info.heights.size} resolusi")
+                    if (info.hasAudio) InfoPill("Audio tersedia")
+                }
+                Spacer(Modifier.height(16.dp))
+                Button(
+                    onClick = onChooseFormat,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Pilih resolusi & potong")
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun InfoPill(text: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = MaterialTheme.shapes.small
+    ) {
+        Text(
+            text,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+        )
     }
 }
