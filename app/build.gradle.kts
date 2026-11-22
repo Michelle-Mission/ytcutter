@@ -14,8 +14,8 @@ android {
         applicationId = "app.ytcutter"
         minSdk = 29
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.1.5"
+        versionCode = 6
+        versionName = "0.1.6"
         ndk {
             abiFilters += "arm64-v8a"
         }
@@ -35,8 +35,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = if (rootProject.file("dev.keystore").exists()) {
                 signingConfigs.getByName("dev")
             } else {
