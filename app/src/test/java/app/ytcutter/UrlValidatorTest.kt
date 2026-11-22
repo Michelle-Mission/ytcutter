@@ -8,12 +8,29 @@ import org.junit.Test
 class UrlValidatorTest {
 
     @Test
-    fun acceptsYouTubeHosts() {
+    fun acceptsSingleVideos() {
         assertTrue(UrlValidator.isYouTube("https://www.youtube.com/watch?v=dQw4w9WgXcQ"))
+        assertTrue(UrlValidator.isYouTube("https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PL123"))
         assertTrue(UrlValidator.isYouTube("https://youtu.be/dQw4w9WgXcQ"))
+        assertTrue(UrlValidator.isYouTube("https://youtu.be/dQw4w9WgXcQ?t=42"))
         assertTrue(UrlValidator.isYouTube("https://m.youtube.com/watch?v=dQw4w9WgXcQ"))
         assertTrue(UrlValidator.isYouTube("https://music.youtube.com/watch?v=dQw4w9WgXcQ"))
+        assertTrue(UrlValidator.isYouTube("https://www.youtube.com/shorts/abc123"))
+        assertTrue(UrlValidator.isYouTube("https://www.youtube.com/live/abc123"))
+        assertTrue(UrlValidator.isYouTube("https://www.youtube.com/embed/abc123"))
         assertTrue(UrlValidator.isYouTube("  https://youtu.be/dQw4w9WgXcQ  "))
+    }
+
+    @Test
+    fun rejectsPlaylistsChannelsAndOtherPages() {
+        assertFalse(UrlValidator.isYouTube("https://www.youtube.com/playlist?list=PL123"))
+        assertFalse(UrlValidator.isYouTube("https://www.youtube.com/channel/UC123"))
+        assertFalse(UrlValidator.isYouTube("https://www.youtube.com/@someone"))
+        assertFalse(UrlValidator.isYouTube("https://www.youtube.com/results?search_query=x"))
+        assertFalse(UrlValidator.isYouTube("https://www.youtube.com/feed/subscriptions"))
+        assertFalse(UrlValidator.isYouTube("https://www.youtube.com/watch"))
+        assertFalse(UrlValidator.isYouTube("https://www.youtube.com/watch?list=PL123"))
+        assertFalse(UrlValidator.isYouTube("https://youtu.be/"))
     }
 
     @Test

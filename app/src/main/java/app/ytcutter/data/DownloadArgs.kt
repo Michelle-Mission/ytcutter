@@ -41,6 +41,6 @@ object DownloadArgs {
 
     fun sectionTime(totalSeconds: Int): String {
         val s = totalSeconds.coerceAtLeast(0)
-        return "%02d:%02d:%02d".format(s / 3600, (s % 3600) / 60, s % 60)
+        return String.format(java.util.Locale.ROOT, "%02d:%02d:%02d", s / 3600, (s % 3600) / 60, s % 60)
     }
 }

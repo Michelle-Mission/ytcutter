@@ -4,14 +4,14 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.Context
+import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import app.ytcutter.MainActivity
-import app.ytcutter.core.FormatMapper
 import app.ytcutter.core.Quality
 import app.ytcutter.data.CookieStore
 import app.ytcutter.data.DownloadArgs
@@ -30,51 +30,72 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.io.File
 
-class DownloadService : android.app.Service() {
+class DownloadService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var job: Job? = null
 
+    @Volatile
+    private var runningProcessId: String? = null
+
     override fun onCreate() {
         super.onCreate()
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(
+        getSystemService(NotificationManager::class.java).createNotificationChannel(
             NotificationChannel(CHANNEL_ID, "Unduhan", NotificationManager.IMPORTANCE_LOW)
         )
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val intentSafe = intent ?: return START_NOT_STICKY
-        val url = intentSafe.getStringExtra(Downloads.EXTRA_URL) ?: return START_NOT_STICKY
-        val height = intentSafe.getIntExtra(Downloads.EXTRA_HEIGHT, -1)
-        val label = intentSafe.getStringExtra(Downloads.EXTRA_LABEL) ?: "video"
-        val start = intentSafe.getIntExtra(Downloads.EXTRA_START, 0)
-        val end = intentSafe.getIntExtra(Downloads.EXTRA_END, 0)
-        val title = intentSafe.getStringExtra(Downloads.EXTRA_TITLE) ?: "video"
+    override fun onBind(intent: Intent?): IBinder? = null
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val safe = intent ?: return START_NOT_STICKY
+        val url = safe.getStringExtra(Downloads.EXTRA_URL) ?: return START_NOT_STICKY
+        val height = safe.getIntExtra(Downloads.EXTRA_HEIGHT, -1)
+        val label = safe.getStringExtra(Downloads.EXTRA_LABEL) ?: "video"
+        val start = safe.getIntExtra(Downloads.EXTRA_START, 0)
+        val end = safe.getIntExtra(Downloads.EXTRA_END, 0)
+        val title = safe.getStringExtra(Downloads.EXTRA_TITLE) ?: "video"
+        val processId = safe.getStringExtra(Downloads.EXTRA_PROCESS_ID) ?: YtDlpRepo.newProcessId()
+
+        runningProcessId = processId
         startForegroundCompat(title)
 
         job?.cancel()
         job = scope.launch {
-            runDownload(url, Quality(label, if (height < 0) null else height), start, end, title)
-            stopSelf()
+            runDownload(
+                url = url,
+                quality = Quality(label, if (height < 0) null else height),
+                start = start,
+                end = end,
+                title = title,
+                processId = processId
+            )
+            stopSelfResult(startId)
         }
         return START_NOT_STICKY
     }
 
-    override fun onBind(intent: Intent?): android.os.IBinder? = null
-
     override fun onDestroy() {
+        YtDlpRepo.cancel(runningProcessId)
+        runningProcessId = null
         scope.cancel()
         super.onDestroy()
     }
 
-    private suspend fun runDownload(url: String, quality: Quality, start: Int, end: Int, title: String) {
+    private suspend fun runDownload(
+        url: String,
+        quality: Quality,
+        start: Int,
+        end: Int,
+        title: String,
+        processId: String
+    ) {
         val audio = quality.isAudio
         val ext = if (audio) "m4a" else "mp4"
-        val outDir = File(cacheDir, "out").apply { mkdirs() }
+        val outDir = File(cacheDir, "out")
+        outDir.deleteRecursively()
+        outDir.mkdirs()
         val outFile = File(outDir, "download.$ext")
-        outFile.delete()
 
         Downloads.update(DownloadState.Running(title, 0f, "Menyiapkan…"))
         val request = DownloadRequest(url, quality, start, end)
@@ -82,51 +103,55 @@ class DownloadService : android.app.Service() {
 
         var lastLine = ""
         try {
-            val exit = YtDlpRepo.execute(this, url, args) { line ->
+            val exit = YtDlpRepo.execute(this, url, args, processId) { line ->
                 lastLine = line
                 parsePercent(line)?.let { pct ->
                     Downloads.update(DownloadState.Running(title, pct, line.trim()))
                     notifyProgress(title, pct, line.trim())
                 }
             }
-            val produced = outFile.takeIf { it.exists() && it.length() > 0 }
-                ?: outDir.listFiles()?.firstOrNull { it.length() > 0 }
             if (Downloads.cancelRequested) {
-                produced?.delete()
-                Downloads.update(DownloadState.Canceled)
-                notifyFinal("Dibatalkan")
+                finish(DownloadState.Canceled, "Dibatalkan")
                 return
             }
-            if (exit != 0 || produced == null) {
+            if (exit != 0 || !outFile.exists() || outFile.length() == 0L) {
                 val mapped = ErrorMapper.map(lastLine)
-                Downloads.update(DownloadState.Failed(mapped.message))
-                notifyFinal("Gagal: ${mapped.message}")
-                produced?.delete()
+                finish(DownloadState.Failed(mapped.message), "Gagal: ${mapped.message}")
                 return
             }
             val displayName = FileNames.displayName(title, start, end, ext)
-            val uri = MediaStorePublisher.publish(this, produced, displayName, audio)
-            produced.delete()
+            val uri = MediaStorePublisher.publish(this, outFile, displayName, audio)
             if (uri == null) {
-                Downloads.update(DownloadState.Failed("Gagal menyimpan ke galeri"))
-                notifyFinal("Gagal menyimpan ke galeri")
+                finish(DownloadState.Failed("Gagal menyimpan ke galeri"), "Gagal menyimpan ke galeri")
             } else {
-                Downloads.update(DownloadState.Done(title, uri))
-                notifyFinal("Selesai: ${FileNames.sanitize(title)}")
+                finish(DownloadState.Done(title, uri), "Selesai: ${FileNames.sanitize(title)}")
             }
         } catch (e: Exception) {
-            outFile.delete()
             if (Downloads.cancelRequested) {
-                Downloads.update(DownloadState.Canceled)
-                notifyFinal("Dibatalkan")
-                return
+                finish(DownloadState.Canceled, "Dibatalkan")
+            } else {
+                val mapped = ErrorMapper.map(e.message ?: "")
+                finish(DownloadState.Failed(mapped.message), "Gagal: ${mapped.message}")
             }
-            val mapped = ErrorMapper.map(e.message ?: "")
-            Downloads.update(DownloadState.Failed(mapped.message))
-            notifyFinal("Gagal: ${mapped.message}")
         } finally {
-            outFile.delete()
+            outDir.deleteRecursively()
+            Downloads.finished()
         }
+    }
+
+    private fun finish(state: DownloadState, text: String) {
+        Downloads.update(state)
+        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_DETACH)
+        getSystemService(NotificationManager::class.java).notify(
+            DONE_NOTIFICATION_ID,
+            buildNotification(
+                title = "YT Cutter",
+                text = text,
+                progress = 0f,
+                indeterminate = false,
+                ongoing = false
+            )
+        )
     }
 
     private fun parsePercent(line: String): Float? {
@@ -138,49 +163,40 @@ class DownloadService : android.app.Service() {
     private fun startForegroundCompat(title: String) {
         val notification = buildNotification(
             title = title,
-            progress = 0f,
             text = "Menyiapkan…",
+            progress = 0f,
             indeterminate = true,
             ongoing = true
         )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ServiceCompat.startForeground(
                 this,
-                NOTIFICATION_ID,
+                PROGRESS_NOTIFICATION_ID,
                 notification,
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
             )
         } else {
-            startForeground(NOTIFICATION_ID, notification)
+            startForeground(PROGRESS_NOTIFICATION_ID, notification)
         }
     }
 
     private fun notifyProgress(title: String, progress: Float, text: String) {
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.notify(
-            NOTIFICATION_ID,
+        getSystemService(NotificationManager::class.java).notify(
+            PROGRESS_NOTIFICATION_ID,
             buildNotification(
                 title = title,
-                progress = progress,
                 text = text,
+                progress = progress,
                 indeterminate = false,
                 ongoing = true
             )
         )
     }
 
-    private fun notifyFinal(text: String) {
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.notify(
-            NOTIFICATION_ID,
-            buildNotification(title = "YT Cutter", progress = 0f, text = text, indeterminate = false, ongoing = false)
-        )
-    }
-
     private fun buildNotification(
         title: String,
-        progress: Float,
         text: String,
+        progress: Float,
         indeterminate: Boolean,
         ongoing: Boolean
     ): Notification {
@@ -204,6 +220,7 @@ class DownloadService : android.app.Service() {
 
     companion object {
         private const val CHANNEL_ID = "downloads"
-        private const val NOTIFICATION_ID = 1
+        private const val PROGRESS_NOTIFICATION_ID = 1
+        private const val DONE_NOTIFICATION_ID = 2
     }
 }

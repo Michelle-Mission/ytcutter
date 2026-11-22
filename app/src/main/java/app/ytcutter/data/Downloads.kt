@@ -25,6 +25,7 @@ object Downloads {
     const val EXTRA_START = "start"
     const val EXTRA_END = "end"
     const val EXTRA_TITLE = "title"
+    const val EXTRA_PROCESS_ID = "process_id"
 
     private val _state = MutableStateFlow<DownloadState>(DownloadState.Idle)
     val state: StateFlow<DownloadState> = _state.asStateFlow()
@@ -33,8 +34,16 @@ object Downloads {
     var cancelRequested: Boolean = false
         private set
 
-    fun start(context: Context, request: DownloadRequest, title: String) {
+    @Volatile
+    private var currentProcessId: String? = null
+
+    fun isRunning(): Boolean = _state.value is DownloadState.Running
+
+    fun start(context: Context, request: DownloadRequest, title: String): Boolean {
+        if (isRunning()) return false
         cancelRequested = false
+        val processId = YtDlpRepo.newProcessId()
+        currentProcessId = processId
         val intent = Intent(context, DownloadService::class.java).apply {
             putExtra(EXTRA_URL, request.url)
             putExtra(EXTRA_HEIGHT, request.quality.height ?: -1)
@@ -42,14 +51,20 @@ object Downloads {
             putExtra(EXTRA_START, request.start)
             putExtra(EXTRA_END, request.end)
             putExtra(EXTRA_TITLE, title)
+            putExtra(EXTRA_PROCESS_ID, processId)
         }
         ContextCompat.startForegroundService(context, intent)
+        return true
     }
 
     fun cancel() {
         cancelRequested = true
-        YtDlpRepo.cancel()
+        YtDlpRepo.cancel(currentProcessId)
         _state.value = DownloadState.Canceled
+    }
+
+    internal fun finished() {
+        currentProcessId = null
     }
 
     internal fun update(state: DownloadState) {

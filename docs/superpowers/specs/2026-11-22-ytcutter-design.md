@@ -34,7 +34,7 @@ App yang berhenti bekerja saat YouTube berubah. Mitigasi: **self-update yt-dlp**
 - GPL-3.0 (ikut `youtubedl-android`).
 - APK besar: Python 3.8 + yt-dlp + ffmpeg. ABI arm64-v8a saja; ABI split aktif.
 - Scoped storage: tulis hanya via MediaStore.
-- minSdk 26, targetSdk/compileSdk 36.
+- minSdk 29, targetSdk/compileSdk 36. MediaStore `IS_PENDING`/`RELATIVE_PATH` butuh API 29.
 - Tanpa JS runtime eksternal; yt-dlp memakai client `visionos/android_vr/tv` fallback.
 - Mesin build tidak punya perangkat/emulator → verifikasi runtime di perangkat manual.
 

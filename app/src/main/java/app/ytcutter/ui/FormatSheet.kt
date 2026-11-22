@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ytcutter.core.FormatMapper
 import app.ytcutter.core.Quality
+import app.ytcutter.core.Range
 import app.ytcutter.core.TimeCode
 import app.ytcutter.data.VideoInfo
 import kotlin.math.roundToInt
@@ -53,12 +54,14 @@ fun FormatSheet(
     val focus = LocalFocusManager.current
 
     var quality by remember { mutableStateOf(options.firstOrNull()) }
-    var start by remember { mutableIntStateOf(0) }
-    var end by remember { mutableIntStateOf(minOf(60, duration)) }
+    val initial = remember(duration) { Range.clamp(0, minOf(60, duration), duration) }
+    var start by remember { mutableIntStateOf(initial.first) }
+    var end by remember { mutableIntStateOf(initial.second) }
     var startText by remember { mutableStateOf(TimeCode.format(start)) }
     var endText by remember { mutableStateOf(TimeCode.format(end)) }
 
-    val valid = quality != null && end > start + 1
+    val selectable = Range.isSelectable(duration)
+    val valid = quality != null && selectable && end > start + 1
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -97,11 +100,25 @@ fun FormatSheet(
 
             Spacer(Modifier.height(20.dp))
             Text("Rentang", style = MaterialTheme.typography.labelLarge)
+            if (!selectable) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Video terlalu pendek untuk dipotong (butuh minimal 3 detik).",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
             RangeSlider(
                 value = start.toFloat()..end.toFloat(),
+                enabled = selectable,
                 onValueChange = { range ->
-                    start = range.start.roundToInt().coerceIn(0, duration - 2)
-                    end = range.endInclusive.roundToInt().coerceIn(start + 2, duration)
+                    val clamped = Range.clamp(
+                        range.start.roundToInt(),
+                        range.endInclusive.roundToInt(),
+                        duration
+                    )
+                    start = clamped.first
+                    end = clamped.second
                     startText = TimeCode.format(start)
                     endText = TimeCode.format(end)
                 },
@@ -124,10 +141,14 @@ fun FormatSheet(
                         .weight(1f)
                         .onFocusChanged { state ->
                             if (!state.isFocused) {
-                                TimeCode.parse(startText)?.let { parsed ->
-                                    start = parsed.coerceIn(0, (end - 2).coerceAtLeast(0))
-                                    startText = TimeCode.format(start)
-                                } ?: run { startText = TimeCode.format(start) }
+                                val parsed = TimeCode.parse(startText)
+                                if (parsed != null) {
+                                    val clamped = Range.clamp(parsed, end, duration)
+                                    start = clamped.first
+                                    end = clamped.second
+                                }
+                                startText = TimeCode.format(start)
+                                endText = TimeCode.format(end)
                             }
                         }
                 )
@@ -146,10 +167,14 @@ fun FormatSheet(
                         .weight(1f)
                         .onFocusChanged { state ->
                             if (!state.isFocused) {
-                                TimeCode.parse(endText)?.let { parsed ->
-                                    end = parsed.coerceIn(start + 2, duration)
-                                    endText = TimeCode.format(end)
-                                } ?: run { endText = TimeCode.format(end) }
+                                val parsed = TimeCode.parse(endText)
+                                if (parsed != null) {
+                                    val clamped = Range.clamp(start, parsed, duration)
+                                    start = clamped.first
+                                    end = clamped.second
+                                }
+                                startText = TimeCode.format(start)
+                                endText = TimeCode.format(end)
                             }
                         }
                 )

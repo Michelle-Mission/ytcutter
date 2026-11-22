@@ -7,17 +7,23 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.util.UUID
+
+data class JsonResult(val json: String?, val error: String?)
 
 object YtDlpRepo {
 
-    const val DOWNLOAD_PROCESS_ID = "download"
     private const val PREFS = "ytdlp"
     private const val KEY_UPDATED = "initial_update_done"
 
-    private val mutex = Mutex()
+    private val initMutex = Mutex()
+    private val metaMutex = Mutex()
+    private val downloadMutex = Mutex()
+
+    fun newProcessId(): String = "dl-${UUID.randomUUID()}"
 
     suspend fun init(context: Context) = withContext(Dispatchers.IO) {
-        mutex.withLock {
+        initMutex.withLock {
             YoutubeDL.getInstance().init(context)
             val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             if (!prefs.getBoolean(KEY_UPDATED, false)) {
@@ -30,13 +36,13 @@ object YtDlpRepo {
     }
 
     suspend fun versionName(context: Context): String? = withContext(Dispatchers.IO) {
-        mutex.withLock {
+        initMutex.withLock {
             runCatching { YoutubeDL.getInstance().versionName(context) }.getOrNull()
         }
     }
 
     suspend fun update(context: Context): String = withContext(Dispatchers.IO) {
-        mutex.withLock {
+        initMutex.withLock {
             runCatching {
                 when (YoutubeDL.getInstance().updateYoutubeDL(context, YoutubeDL.UpdateChannel.STABLE)) {
                     YoutubeDL.UpdateStatus.DONE -> "yt-dlp diperbarui"
@@ -47,17 +53,25 @@ object YtDlpRepo {
         }
     }
 
-    suspend fun json(context: Context, url: String): String? = withContext(Dispatchers.IO) {
-        mutex.withLock {
-            runCatching {
+    suspend fun json(context: Context, url: String): JsonResult = withContext(Dispatchers.IO) {
+        metaMutex.withLock {
+            try {
                 val request = YoutubeDLRequest(url).apply {
                     addOption("-J")
                     addOption("--no-playlist")
                     addOption("--no-warnings")
                 }
                 val response = YoutubeDL.getInstance().execute(request)
-                response.out.lineSequence().firstOrNull { it.trimStart().startsWith("{") }
-            }.getOrNull()
+                val line = response.out.lineSequence()
+                    .firstOrNull { it.trimStart().startsWith("{") }
+                if (line != null && response.exitCode == 0) {
+                    JsonResult(line, null)
+                } else {
+                    JsonResult(null, response.err.ifBlank { "yt-dlp keluar dengan kode ${response.exitCode}" })
+                }
+            } catch (e: Exception) {
+                JsonResult(null, e.message ?: "gagal menjalankan yt-dlp")
+            }
         }
     }
 
@@ -65,20 +79,24 @@ object YtDlpRepo {
         context: Context,
         url: String,
         options: List<Pair<String, String?>>,
+        processId: String,
         onLine: (String) -> Unit = {}
     ): Int = withContext(Dispatchers.IO) {
-        mutex.withLock {
+        downloadMutex.withLock {
             val request = YoutubeDLRequest(url)
             options.forEach { (option, value) ->
                 if (value == null) request.addOption(option) else request.addOption(option, value)
             }
             val response = YoutubeDL.getInstance().execute(
                 request,
-                DOWNLOAD_PROCESS_ID
+                processId
             ) { _, _, line -> if (line.isNotBlank()) onLine(line) }
             response.exitCode
         }
     }
 
-    fun cancel(): Boolean = YoutubeDL.getInstance().destroyProcessById(DOWNLOAD_PROCESS_ID)
+    fun cancel(processId: String?): Boolean {
+        if (processId == null) return false
+        return runCatching { YoutubeDL.getInstance().destroyProcessById(processId) }.getOrDefault(false)
+    }
 }

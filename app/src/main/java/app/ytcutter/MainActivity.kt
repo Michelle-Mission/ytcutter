@@ -33,6 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.ytcutter.core.UrlValidator
 import app.ytcutter.data.DownloadRequest
 import app.ytcutter.data.Downloads
+import app.ytcutter.data.ErrorMapper
 import app.ytcutter.data.MetadataParser
 import app.ytcutter.data.YtDlpRepo
 import app.ytcutter.ui.DownloadsScreen
@@ -111,15 +112,17 @@ private fun AppRoot() {
                         } else {
                             homeState = HomeState.Loading
                             scope.launch {
-                                val json = YtDlpRepo.json(context, url)
-                                val info = json?.let { MetadataParser.parse(it) }
-                                homeState = if (info != null) {
-                                    HomeState.Loaded(info, url)
-                                } else {
-                                    HomeState.Error(
-                                        "Gagal mengambil info video. Coba lagi, atau update yt-dlp " +
-                                            "di Pengaturan bila terus gagal."
+                                val result = YtDlpRepo.json(context, url)
+                                val info = result.json?.let { MetadataParser.parse(it) }
+                                homeState = when {
+                                    info == null -> HomeState.Error(
+                                        ErrorMapper.map(result.error ?: "").message
                                     )
+                                    info.heights.isEmpty() && !info.hasAudio -> HomeState.Error(
+                                        "URL ini bukan video tunggal (playlist/kanal). " +
+                                            "Tempel tautan video."
+                                    )
+                                    else -> HomeState.Loaded(info, url)
                                 }
                             }
                         }
@@ -144,11 +147,12 @@ private fun AppRoot() {
                 onDismiss = { showFormat = false },
                 onStart = { quality, start, end ->
                     showFormat = false
-                    Downloads.start(
+                    val started = Downloads.start(
                         context,
                         DownloadRequest(loaded.url, quality, start, end),
                         loaded.info.title
                     )
+                    if (!started) homeState = HomeState.Error("Masih ada unduhan berjalan. Tunggu atau batalkan dulu.")
                     tab = 1
                 }
             )

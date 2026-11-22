@@ -24,7 +24,7 @@ export ANDROID_HOME=/opt/android-sdk
 # APK: app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
 ```
 
-Hanya ABI `arm64-v8a` (perangkat 64-bit modern). Debug APK ~70 MB karena membawa
+Android 10 (API 29) ke atas, ABI `arm64-v8a` (perangkat 64-bit modern). Debug APK ~70 MB karena membawa
 Python + yt-dlp + ffmpeg.
 
 Pasang:

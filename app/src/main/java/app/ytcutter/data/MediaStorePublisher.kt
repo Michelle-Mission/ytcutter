@@ -33,7 +33,11 @@ object MediaStorePublisher {
                 temp.inputStream().use { input -> input.copyTo(out) }
             } ?: throw IllegalStateException("tidak bisa membuka output MediaStore")
             val done = ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }
-            resolver.update(uri, done, null, null)
+            val updated = resolver.update(uri, done, null, null)
+            if (updated != 1) {
+                resolver.delete(uri, null, null)
+                return null
+            }
             uri
         } catch (e: Exception) {
             resolver.delete(uri, null, null)
