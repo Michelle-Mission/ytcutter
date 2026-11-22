@@ -30,7 +30,7 @@ Python + yt-dlp + ffmpeg.
 Pasang:
 
 ```bash
-adb install -r app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
+adb install -r app/build/outputs/apk/release/app-arm64-v8a-release.apk
 ```
 
 ## Captcha / "Sign in to confirm you're not a bot"

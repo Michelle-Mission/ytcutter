@@ -27,9 +27,24 @@ android {
         }
     }
 
+    signingConfigs {
+        create("dev") {
+            storeFile = rootProject.file("dev.keystore")
+            storePassword = "ytcutter"
+            keyAlias = "ytcutter"
+            keyPassword = "ytcutter"
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("dev")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 
