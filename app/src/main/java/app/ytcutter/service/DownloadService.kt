@@ -56,6 +56,7 @@ class DownloadService : Service() {
         val end = safe.getIntExtra(Downloads.EXTRA_END, 0)
         val title = safe.getStringExtra(Downloads.EXTRA_TITLE) ?: "video"
         val processId = safe.getStringExtra(Downloads.EXTRA_PROCESS_ID) ?: YtDlpRepo.newProcessId()
+        val infoJson = safe.getStringExtra(Downloads.EXTRA_INFO_JSON)
 
         runningProcessId = processId
         startForegroundCompat(title)
@@ -68,7 +69,8 @@ class DownloadService : Service() {
                 start = start,
                 end = end,
                 title = title,
-                processId = processId
+                processId = processId,
+                infoJson = infoJson
             )
             stopSelfResult(startId)
         }
@@ -88,7 +90,8 @@ class DownloadService : Service() {
         start: Int,
         end: Int,
         title: String,
-        processId: String
+        processId: String,
+        infoJson: String?
     ) {
         val audio = quality.isAudio
         val ext = if (audio) "m4a" else "mp4"
@@ -98,7 +101,7 @@ class DownloadService : Service() {
         val outFile = File(outDir, "download.$ext")
 
         Downloads.update(DownloadState.Running(title, 0f, "Menyiapkan…"))
-        val request = DownloadRequest(url, quality, start, end)
+        val request = DownloadRequest(url, quality, start, end, infoJson)
         val args = DownloadArgs.build(request, outFile.absolutePath, CookieStore.path(this))
 
         var lastLine = ""

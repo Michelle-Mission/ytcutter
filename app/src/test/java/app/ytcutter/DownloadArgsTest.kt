@@ -29,7 +29,6 @@ class DownloadArgsTest {
                 "--socket-timeout" to "20",
                 "--no-mtime" to null,
                 "--download-sections" to "*00:00:15-00:03:40",
-                "--force-keyframes-at-cuts" to null,
                 "--no-playlist" to null,
                 "--newline" to null,
                 "-o" to out

@@ -23,6 +23,19 @@ object UrlValidator {
         return videoPaths.any { it != "/watch" && path.startsWith(it) && path.length > it.length }
     }
 
+    fun videoId(raw: String): String? {
+        if (!isYouTube(raw)) return null
+        val uri = runCatching { java.net.URI(raw.trim()) }.getOrNull() ?: return null
+        val host = uri.host?.lowercase()?.removePrefix("www.")?.removePrefix("m.") ?: return null
+        val path = uri.path.orEmpty()
+        if (host == "youtu.be") return path.trim('/').takeIf { it.length == 11 }
+        if (path.startsWith("/watch")) return queryParam(uri.rawQuery, "v")?.takeIf { it.length == 11 }
+        val id = listOf("/shorts/", "/live/", "/embed/")
+            .firstOrNull { path.startsWith(it) }
+            ?.let { path.removePrefix(it).substringBefore('/') }
+        return id?.takeIf { it.length == 11 }
+    }
+
     private fun queryParam(rawQuery: String?, key: String): String? {
         if (rawQuery.isNullOrBlank()) return null
         return rawQuery.split('&')

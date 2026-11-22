@@ -29,6 +29,7 @@ object Downloads {
     const val EXTRA_END = "end"
     const val EXTRA_TITLE = "title"
     const val EXTRA_PROCESS_ID = "process_id"
+    const val EXTRA_INFO_JSON = "info_json"
 
     private val _state = MutableStateFlow<DownloadState>(DownloadState.Idle)
     val state: StateFlow<DownloadState> = _state.asStateFlow()
@@ -68,6 +69,7 @@ object Downloads {
             putExtra(EXTRA_END, request.end)
             putExtra(EXTRA_TITLE, title)
             putExtra(EXTRA_PROCESS_ID, processId)
+            putExtra(EXTRA_INFO_JSON, request.infoJson)
         }
         ContextCompat.startForegroundService(context, intent)
         return true

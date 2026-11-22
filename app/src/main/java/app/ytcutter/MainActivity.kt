@@ -295,7 +295,7 @@ private fun MainContent() {
                                         "URL ini bukan video tunggal (playlist/kanal). " +
                                             "Tempel tautan video."
                                     )
-                                    else -> HomeState.Loaded(info, url)
+                                    else -> HomeState.Loaded(info, url, result.json?.let { saveInfoJson(context, it) })
                                 }
                             }
                         }
@@ -321,7 +321,7 @@ private fun MainContent() {
                     showFormat = false
                     val started = Downloads.start(
                         context,
-                        DownloadRequest(loaded.url, quality, start, end),
+                        DownloadRequest(loaded.url, quality, start, end, loaded.infoJson),
                         loaded.info.title
                     )
                     if (!started) {
@@ -336,3 +336,8 @@ private fun MainContent() {
         }
     }
 }
+private fun saveInfoJson(context: android.content.Context, json: String): String? = runCatching {
+    val file = java.io.File(context.cacheDir, "info.json")
+    file.writeText(json)
+    file.absolutePath
+}.getOrNull()

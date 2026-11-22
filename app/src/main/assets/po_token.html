@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title></title></head>
+<body>
+<script>
+window.__run = function (ch) {
+  try {
+    var js = ch.interpreterJavascript && ch.interpreterJavascript.privateDoNotAccessOrElseSafeScriptWrappedValue;
+    if (!js) throw new Error('no interpreter');
+    (new Function(js))();
+    var vm = window[ch.globalName];
+    if (!vm || typeof vm.a !== 'function') throw new Error('no vm');
+
+    var fns = null;
+    vm.a(ch.program, function (snapshot) { fns = { snapshot: snapshot }; }, true, null, function () {}, [[], []]);
+
+    var tries = 0;
+    var timer = setInterval(function () {
+      if (fns) {
+        clearInterval(timer);
+        snapshot();
+      } else if (++tries > 10000) {
+        clearInterval(timer);
+        YTC.onError('async snapshot fn missing');
+      }
+    }, 1);
+
+    function snapshot() {
+      window.__signal = [];
+      try {
+        fns.snapshot(function (response) {
+          YTC.onSnapshot(response || '');
+        }, [[], null, window.__signal, false]);
+      } catch (e) {
+        YTC.onError('snapshot: ' + e);
+      }
+    }
+  } catch (e) {
+    YTC.onError('run: ' + e + '\n' + (e && e.stack));
+  }
+};
+
+window.__mint = function (id) {
+  try {
+    var minter = window.__signal && window.__signal[0];
+    if (typeof minter !== 'function') throw new Error('PMD:Undefined');
+    var raw = atob(window.__integrityB64 || '');
+    var integrity = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) integrity[i] = raw.charCodeAt(i);
+    var mint = minter(integrity);
+    if (typeof mint !== 'function') throw new Error('APF:Failed');
+    var bytes = mint(new TextEncoder().encode(id));
+    if (!(bytes instanceof Uint8Array)) throw new Error('ODM:Invalid');
+    var s = '';
+    for (var j = 0; j < bytes.length; j++) s += String.fromCharCode(bytes[j]);
+    YTC.onToken(id, btoa(s).replace(/\+/g, '-').replace(/\//g, '_'));
+  } catch (e) {
+    YTC.onError('mint: ' + e);
+  }
+};
+</script>
+</body>
+</html>

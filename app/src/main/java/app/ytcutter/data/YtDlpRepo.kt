@@ -123,9 +123,11 @@ object YtDlpRepo {
                     addOption("-J")
                     addOption("--no-playlist")
                     addOption("--no-warnings")
+                    addOption("--no-check-formats")
                     addOption("--socket-timeout", "15")
                     addOption("--extractor-retries", "1")
                     CookieStore.path(context)?.let { addOption("--cookies", it) }
+                    youtubeArgs(context, url)?.let { addOption("--extractor-args", it) }
                 }
                 val response = YoutubeDL.getInstance().execute(request)
                 val line = response.out.lineSequence()
@@ -151,6 +153,11 @@ object YtDlpRepo {
         awaitReady(context)
         downloadMutex.withLock {
             val request = YoutubeDLRequest(url)
+            val fromInfoJson = options.any { it.first == "--load-info-json" }
+            if (!fromInfoJson) {
+                // -J hanya boleh satu baris; args tambahan tetap aman kalau gagal.
+                youtubeArgs(context, url)?.let { request.addOption("--extractor-args", it) }
+            }
             options.forEach { (option, value) ->
                 if (value == null) request.addOption(option) else request.addOption(option, value)
             }
@@ -160,6 +167,11 @@ object YtDlpRepo {
             ) { _, _, line -> if (line.isNotBlank()) onLine(line) }
             response.exitCode
         }
+    }
+
+    private suspend fun youtubeArgs(context: Context, url: String): String? {
+        if (!app.ytcutter.core.UrlValidator.isYouTube(url)) return null
+        return PoToken.extractorArgs(context, url)
     }
 
     fun cancel(processId: String?): Boolean {

@@ -64,7 +64,11 @@ sealed interface HomeState {
     data object Idle : HomeState
     data object Loading : HomeState
     data class Error(val message: String) : HomeState
-    data class Loaded(val info: VideoInfo, val url: String) : HomeState
+    data class Loaded(
+        val info: VideoInfo,
+        val url: String,
+        val infoJson: String? = null
+    ) : HomeState
 }
 
 @Composable

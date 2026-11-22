@@ -7,7 +7,8 @@ data class DownloadRequest(
     val url: String,
     val quality: Quality,
     val start: Int,
-    val end: Int
+    val end: Int,
+    val infoJson: String? = null
 )
 
 object DownloadArgs {
@@ -37,7 +38,7 @@ object DownloadArgs {
         args += "--socket-timeout" to "20"
         args += "--no-mtime" to null
         args += "--download-sections" to "*${sectionTime(req.start)}-${sectionTime(req.end)}"
-        if (!req.quality.isAudio) args += "--force-keyframes-at-cuts" to null
+        req.infoJson?.let { args += "--load-info-json" to it }
         args += "--no-playlist" to null
         args += "--newline" to null
         args += "-o" to outPath

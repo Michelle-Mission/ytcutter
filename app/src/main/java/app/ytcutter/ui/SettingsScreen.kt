@@ -237,26 +237,9 @@ fun SettingsScreen(engine: EngineState) {
             }
         }
 
-        Spacer(Modifier.height(14.dp))
-
-        Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            shape = MaterialTheme.shapes.large,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(Modifier.padding(18.dp)) {
-                Text("Catatan", style = MaterialTheme.typography.titleSmall)
-                Spacer(Modifier.height(8.dp))
-                Bullet("Potongan video/audio diambil ulang dari sumber, bukan dipotong lokal — hasil tetap utuh tanpa re-encode untuk audio, video dipotong cepat.")
-                Bullet("YouTube kadang menantang dengan CAPTCHA; aplikasi ini tidak memecahkannya. Buka YouTube di browser, lalu ulangi.")
-                Bullet("Login YouTube cuma sekali: buka, login, tutup — cookies tersimpan sendiri.")
-                Bullet("Gunakan hanya untuk konten yang boleh kamu unduh.")
-            }
-        }
-
         Spacer(Modifier.height(18.dp))
         Text(
-            "YT Cutter · 0.1.7 · arm64-v8a",
+            "YT Cutter · 0.1.8 · arm64-v8a",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.fillMaxWidth(),
@@ -280,18 +263,6 @@ private fun StatePill(text: String, error: Boolean = false) {
             color = if (error) MaterialTheme.colorScheme.onErrorContainer
             else MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-        )
-    }
-}
-
-@Composable
-private fun Bullet(text: String) {
-    Row(Modifier.padding(vertical = 3.dp)) {
-        Text("• ", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-        Text(
-            text,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

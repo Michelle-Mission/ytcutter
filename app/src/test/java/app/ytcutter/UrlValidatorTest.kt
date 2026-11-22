@@ -1,7 +1,9 @@
 package app.ytcutter
 
 import app.ytcutter.core.UrlValidator
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -46,5 +48,15 @@ class UrlValidatorTest {
         assertFalse(UrlValidator.isYouTube("bukan url"))
         assertFalse(UrlValidator.isYouTube("youtube.com/watch?v=1"))
         assertFalse(UrlValidator.isYouTube("https://youtu.be/abc def"))
+    }
+
+    @Test
+    fun extractsVideoId() {
+        assertEquals("dQw4w9WgXcQ", UrlValidator.videoId("https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PL1"))
+        assertEquals("dQw4w9WgXcQ", UrlValidator.videoId("https://youtu.be/dQw4w9WgXcQ?t=42"))
+        assertEquals("dQw4w9WgXcQ", UrlValidator.videoId("https://m.youtube.com/shorts/dQw4w9WgXcQ"))
+        assertEquals("dQw4w9WgXcQ", UrlValidator.videoId("https://www.youtube.com/live/dQw4w9WgXcQ"))
+        assertNull(UrlValidator.videoId("https://www.youtube.com/watch"))
+        assertNull(UrlValidator.videoId("https://vimeo.com/22439234"))
     }
 }
