@@ -1,5 +1,7 @@
 -keep class com.yausername.** { *; }
--keep class org.apache.commons.compress.** { *; }
+-keep class org.apache.commons.compress.archivers.zip.** { *; }
 -keep class org.apache.commons.io.** { *; }
+-dontwarn org.apache.commons.compress.**
+-dontwarn org.tukaani.xz.**
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
