@@ -6,7 +6,9 @@ import android.os.Handler
 import android.os.Looper
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import app.ytcutter.core.UrlValidator
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
@@ -164,8 +166,15 @@ object PoToken {
         web.settings.blockNetworkLoads = true
         web.settings.userAgentString = USER_AGENT
         web.addJavascriptInterface(Bridge(), "YTC")
+        val loaded = CompletableDeferred<Unit>()
+        web.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                loaded.complete(Unit)
+            }
+        }
         val html = context.assets.open("po_token.html").bufferedReader().use { it.readText() }
         web.loadDataWithBaseURL("https://www.youtube.com", html, "text/html", "utf-8", null)
+        loaded.await()
         web
     }
 
