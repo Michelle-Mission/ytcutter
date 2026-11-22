@@ -118,28 +118,34 @@ object YtDlpRepo {
     suspend fun json(context: Context, url: String): JsonResult = withContext(Dispatchers.IO) {
         awaitReady(context)
         metaMutex.withLock {
-            try {
-                val request = YoutubeDLRequest(url).apply {
-                    addOption("-J")
-                    addOption("--no-playlist")
-                    addOption("--no-warnings")
-                    addOption("--no-check-formats")
-                    addOption("--socket-timeout", "15")
-                    addOption("--extractor-retries", "1")
-                    CookieStore.path(context)?.let { addOption("--cookies", it) }
-                    youtubeArgs(context, url)?.let { addOption("--extractor-args", it) }
-                }
-                val response = YoutubeDL.getInstance().execute(request)
-                val line = response.out.lineSequence()
-                    .firstOrNull { it.trimStart().startsWith("{") }
-                if (line != null && response.exitCode == 0) {
-                    JsonResult(line, null)
-                } else {
-                    JsonResult(null, response.err.ifBlank { "yt-dlp keluar dengan kode ${response.exitCode}" })
-                }
-            } catch (e: Exception) {
-                JsonResult(null, e.message ?: "gagal menjalankan yt-dlp")
+            val extractorArgs = youtubeArgs(context, url)
+            val first = runJson(context, url, extractorArgs)
+            // poToken/client paksaan bisa ditolak YouTube; ulangi tanpa itu.
+            if (first.json != null || extractorArgs == null) first else runJson(context, url, null)
+        }
+    }
+
+    private suspend fun runJson(context: Context, url: String, extractorArgs: String?): JsonResult {
+        return try {
+            val request = YoutubeDLRequest(url).apply {
+                addOption("-J")
+                addOption("--no-playlist")
+                addOption("--no-warnings")
+                addOption("--no-check-formats")
+                addOption("--socket-timeout", "15")
+                addOption("--extractor-retries", "1")
+                CookieStore.path(context)?.let { addOption("--cookies", it) }
+                extractorArgs?.let { addOption("--extractor-args", it) }
             }
+            val response = YoutubeDL.getInstance().execute(request)
+            val line = response.out.lineSequence().firstOrNull { it.trimStart().startsWith("{") }
+            if (line != null && response.exitCode == 0) {
+                JsonResult(line, null)
+            } else {
+                JsonResult(null, response.err.ifBlank { "yt-dlp keluar dengan kode ${response.exitCode}" })
+            }
+        } catch (e: Exception) {
+            JsonResult(null, e.message ?: "gagal menjalankan yt-dlp")
         }
     }
 
@@ -152,26 +158,40 @@ object YtDlpRepo {
     ): Int = withContext(Dispatchers.IO) {
         awaitReady(context)
         downloadMutex.withLock {
-            val request = YoutubeDLRequest(url)
             val fromInfoJson = options.any { it.first == "--load-info-json" }
-            if (!fromInfoJson) {
-                // -J hanya boleh satu baris; args tambahan tetap aman kalau gagal.
-                youtubeArgs(context, url)?.let { request.addOption("--extractor-args", it) }
+            val extractorArgs = if (fromInfoJson) null else youtubeArgs(context, url)
+            val exit = runDownload(url, options, processId, extractorArgs, onLine)
+            if (exit != 0 && extractorArgs != null) {
+                runDownload(url, options, processId, null, onLine)
+            } else {
+                exit
             }
-            options.forEach { (option, value) ->
-                if (value == null) request.addOption(option) else request.addOption(option, value)
-            }
-            val response = YoutubeDL.getInstance().execute(
-                request,
-                processId
-            ) { _, _, line -> if (line.isNotBlank()) onLine(line) }
-            response.exitCode
         }
+    }
+
+    private suspend fun runDownload(
+        url: String,
+        options: List<Pair<String, String?>>,
+        processId: String,
+        extractorArgs: String?,
+        onLine: (String) -> Unit
+    ): Int {
+        val request = YoutubeDLRequest(url)
+        extractorArgs?.let { request.addOption("--extractor-args", it) }
+        options.forEach { (option, value) ->
+            if (value == null) request.addOption(option) else request.addOption(option, value)
+        }
+        val response = YoutubeDL.getInstance().execute(request, processId) { _, _, line ->
+            if (line.isNotBlank()) onLine(line)
+        }
+        return response.exitCode
     }
 
     private suspend fun youtubeArgs(context: Context, url: String): String? {
         if (!app.ytcutter.core.UrlValidator.isYouTube(url)) return null
-        return PoToken.extractorArgs(context, url)
+        val token = PoToken.extractorArgs(context, url) ?: return null
+        // tv_downgraded bikin "The page needs to be reloaded" saat pakai cookies.
+        return "player_client=default,-tv_downgraded;$token"
     }
 
     fun cancel(processId: String?): Boolean {
