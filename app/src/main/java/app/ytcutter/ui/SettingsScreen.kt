@@ -31,7 +31,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -59,7 +58,7 @@ fun SettingsScreen(engine: EngineState) {
     var crashVisible by remember { mutableStateOf(lastCrash != null) }
     var updating by remember { mutableStateOf(false) }
 
-    val version by produceState(initialValue = "…", engine) {
+    val version by produceState(initialValue = "...", engine) {
         value = if (engine is EngineState.Ready) {
             YtDlpRepo.versionName(context) ?: "tidak diketahui"
         } else {
@@ -128,7 +127,7 @@ fun SettingsScreen(engine: EngineState) {
                     onClick = {
                         scope.launch {
                             updating = true
-                            updateMessage = "Memeriksa pembaruan…"
+                            updateMessage = "Memeriksa pembaruan..."
                             updateMessage = YtDlpRepo.update(context)
                             YtDlpRepo.markUpdateChecked(context)
                             updating = false
@@ -256,7 +255,7 @@ fun SettingsScreen(engine: EngineState) {
 
         Spacer(Modifier.height(18.dp))
         Text(
-            "YT Cutter · 0.1.5 · arm64-v8a",
+            "YT Cutter · 0.1.6 · arm64-v8a",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.fillMaxWidth(),
