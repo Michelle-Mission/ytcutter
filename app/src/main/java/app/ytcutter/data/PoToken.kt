@@ -152,7 +152,8 @@ object PoToken {
 
     private fun descramble(value: String): String {
         val normalized = value.replace('-', '+').replace('_', '/').replace('.', '=')
-        val bytes = Base64.getDecoder().decode(normalized)
+        val padded = normalized + "=".repeat((4 - normalized.length % 4) % 4)
+        val bytes = Base64.getDecoder().decode(padded)
         return String(bytes.map { (it + 97).toByte() }.toByteArray())
     }
 
@@ -182,8 +183,11 @@ object PoToken {
     }
 
     private suspend fun setIntegrity(web: WebView, integrity: String) {
+        val normalized = integrity.replace('-', '+').replace('_', '/')
+        val padded = normalized + "=".repeat((4 - normalized.length % 4) % 4)
+        val bytes = Base64.getDecoder().decode(padded).joinToString(",") { (it.toInt() and 0xFF).toString() }
         withContext(Dispatchers.Main) {
-            web.evaluateJavascript("window.__integrityB64 = ${JSONObject.quote(integrity)}", null)
+            web.evaluateJavascript("window.__integrity = new Uint8Array([$bytes])", null)
         }
     }
 

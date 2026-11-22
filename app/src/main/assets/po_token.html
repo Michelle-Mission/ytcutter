@@ -44,9 +44,8 @@ window.__mint = function (id) {
   try {
     var minter = window.__signal && window.__signal[0];
     if (typeof minter !== 'function') throw new Error('PMD:Undefined');
-    var raw = atob(window.__integrityB64 || '');
-    var integrity = new Uint8Array(raw.length);
-    for (var i = 0; i < raw.length; i++) integrity[i] = raw.charCodeAt(i);
+    var integrity = window.__integrity;
+    if (!(integrity instanceof Uint8Array)) throw new Error('no integrity token');
     var mint = minter(integrity);
     if (typeof mint !== 'function') throw new Error('APF:Failed');
     var bytes = mint(new TextEncoder().encode(id));
