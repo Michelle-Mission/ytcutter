@@ -14,8 +14,8 @@ android {
         applicationId = "app.ytcutter"
         minSdk = 29
         targetSdk = 36
-        versionCode = 11
-        versionName = "0.1.11"
+        versionCode = 12
+        versionName = "0.2.0"
         ndk {
             abiFilters += "arm64-v8a"
         }
@@ -86,6 +86,8 @@ dependencies {
     implementation(libs.coil.network.okhttp)
     implementation(libs.youtubedl.library)
     implementation(libs.youtubedl.ffmpeg)
+    implementation(libs.newpipeextractor)
+    implementation(libs.okhttp)
 
     debugImplementation(libs.androidx.ui.tooling)
     testImplementation(libs.junit)

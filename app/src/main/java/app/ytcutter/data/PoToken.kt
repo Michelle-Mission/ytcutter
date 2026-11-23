@@ -50,14 +50,23 @@ object PoToken {
         val expiresAt: Long
     )
 
-    /** contoh: "po_token=web.gvs+X,web.player+Y;visitor_data=Z" */
-    suspend fun extractorArgs(context: Context, url: String): String? {
+    data class Tokens(val visitorData: String, val streaming: String, val player: String)
+
+    fun buildExtractorArgs(tokens: Tokens): String =
+        "youtube:player_client=default,-tv_downgraded;" +
+            "po_token=web.gvs+${tokens.streaming},web.player+${tokens.player};" +
+            "visitor_data=${tokens.visitorData}"
+
+    suspend fun extractorArgs(context: Context, url: String): String? =
+        tokens(context, url)?.let(::buildExtractorArgs)
+
+    suspend fun tokens(context: Context, url: String): Tokens? {
         val videoId = UrlValidator.videoId(url) ?: return null
-        return runCatching { withTimeout(25_000) { withContext(Dispatchers.IO) { args(context, videoId) } } }
+        return runCatching { withTimeout(25_000) { withContext(Dispatchers.IO) { sessionTokens(context, videoId) } } }
             .getOrNull()
     }
 
-    private suspend fun args(context: Context, videoId: String): String {
+    private suspend fun sessionTokens(context: Context, videoId: String): Tokens {
         val app = context.applicationContext
         return mutex.withLock {
             val now = System.currentTimeMillis()
@@ -67,7 +76,7 @@ object PoToken {
                 session = s
             }
             val player = s.player[videoId] ?: mint(s.web, videoId).also { s.player[videoId] = it }
-            "po_token=web.gvs+${s.streaming},web.player+$player;visitor_data=${s.visitorData}"
+            Tokens(s.visitorData, s.streaming, player)
         }
     }
 

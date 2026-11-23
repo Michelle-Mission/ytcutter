@@ -5,3 +5,10 @@
 -dontwarn org.tukaani.xz.**
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
+-keep class org.schabi.newpipe.extractor.** { *; }
+-dontwarn org.schabi.newpipe.extractor.**
+-dontwarn javax.annotation.**
+-dontwarn org.jsoup.**
+-dontwarn java.beans.**
+-dontwarn javax.script.**
+-dontwarn org.mozilla.javascript.**
