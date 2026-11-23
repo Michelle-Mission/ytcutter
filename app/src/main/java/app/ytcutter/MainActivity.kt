@@ -102,23 +102,16 @@ private fun AppRoot() {
 
     LaunchedEffect(Unit) {
         CrashLog.markBooting(context.applicationContext)
-        val init = YtDlpRepo.ensureInit(context.applicationContext)
-        if (init.isSuccess) CrashLog.markBooted(context.applicationContext)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+        // Mesin disiapkan di latar; UI langsung tampil.
+        val init = YtDlpRepo.ensureInit(context.applicationContext)
+        if (init.isSuccess) CrashLog.markBooted(context.applicationContext)
     }
 
     when (val state = engine) {
-        EngineState.Ready -> MainContent()
-        EngineState.Starting -> BootScreen(
-            crash = crashText?.takeIf { showCrash },
-            onShareCrash = { crashText?.let { CrashLog.share(context, it) } },
-            onClearCrash = {
-                CrashLog.clear(context.applicationContext)
-                showCrash = false
-            }
-        )
+        EngineState.Ready, EngineState.Starting -> MainContent()
         is EngineState.Failed -> BootScreen(
             error = state.message,
             crash = state.detail ?: crashText,
@@ -243,6 +236,8 @@ private fun MainContent() {
     var homeState by remember { mutableStateOf<HomeState>(HomeState.Idle) }
 
     LaunchedEffect(Unit) {
+        // beri waktu boot; update tidak boleh ikut memperlambat start
+        kotlinx.coroutines.delay(12_000)
         if (!Downloads.isRunning()) {
             YtDlpRepo.autoUpdateOnce(context.applicationContext)
         }

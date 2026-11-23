@@ -45,7 +45,6 @@ object YtDlpRepo {
             _state.value = EngineState.Starting
             try {
                 YoutubeDL.getInstance().init(context.applicationContext)
-                runCatching { FFmpeg.getInstance().init(context.applicationContext) }
                 ready = true
                 _state.value = EngineState.Ready
                 Result.success(Unit)
@@ -68,6 +67,18 @@ object YtDlpRepo {
                 if (message == null) name else "$name: $message"
             }
         return "Gagal menyiapkan mesin — $chain"
+    }
+
+    @Volatile
+    private var ffmpegReady = false
+
+    private suspend fun ensureFfmpeg(context: Context) {
+        if (ffmpegReady) return
+        initMutex.withLock {
+            if (ffmpegReady) return@withLock
+            FFmpeg.getInstance().init(context.applicationContext)
+            ffmpegReady = true
+        }
     }
 
     suspend fun autoUpdateOnce(context: Context) {
@@ -157,6 +168,7 @@ object YtDlpRepo {
         onLine: (String) -> Unit = {}
     ): Int = withContext(Dispatchers.IO) {
         awaitReady(context)
+        ensureFfmpeg(context)
         downloadMutex.withLock {
             val fromInfoJson = options.any { it.first == "--load-info-json" }
             val extractorArgs = if (fromInfoJson) null else youtubeArgs(context, url)
