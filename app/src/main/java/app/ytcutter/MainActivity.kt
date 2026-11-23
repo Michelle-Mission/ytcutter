@@ -65,6 +65,7 @@ import app.ytcutter.data.ErrorMapper
 import app.ytcutter.data.InfoCache
 import app.ytcutter.data.YouTubeInfo
 import app.ytcutter.data.MetadataParser
+import app.ytcutter.data.NewPipeMapper
 import app.ytcutter.data.YtDlpRepo
 import app.ytcutter.ui.DownloadsScreen
 import app.ytcutter.ui.FormatSheet
@@ -283,11 +284,20 @@ private fun MainContent() {
                             homeState = HomeState.Loading
                             scope.launch {
                                 val fast = YouTubeInfo.fetch(context, url).getOrNull()
+                                    ?.takeIf { NewPipeMapper.isUsable(it) }
                                 if (fast != null) {
-                                    homeState = HomeState.Loaded(fast, url, InfoCache.pathFor(url))
+                                    homeState = HomeState.Loaded(
+                                        fast,
+                                        url,
+                                        InfoCache.existingPath(context.cacheDir, url)
+                                    )
                                     scope.launch {
                                         val meta = YtDlpRepo.json(context, url)
-                                        if (meta.json != null) InfoCache.save(context, url, meta.json)
+                                        val path = meta.json?.let { InfoCache.save(context, url, it) }
+                                        val current = homeState
+                                        if (path != null && current is HomeState.Loaded && current.url == url) {
+                                            homeState = current.copy(infoJson = path)
+                                        }
                                     }
                                 } else {
                                     val result = YtDlpRepo.json(context, url)

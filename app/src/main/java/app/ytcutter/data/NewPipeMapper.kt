@@ -4,6 +4,8 @@ object NewPipeMapper {
 
     private const val MIN_VIDEO_HEIGHT = 144
 
+    fun isUsable(info: VideoInfo): Boolean = info.heights.isNotEmpty() || info.hasAudio
+
     fun toVideoInfo(
         videoId: String,
         title: String,

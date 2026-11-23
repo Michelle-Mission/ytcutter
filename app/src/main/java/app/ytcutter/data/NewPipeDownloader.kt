@@ -50,15 +50,7 @@ class NewPipeDownloader(context: Context) : Downloader() {
     private fun cookies(): String? {
         val file = CookieStore.file(appContext)
         if (!file.exists() || file.length() == 0L) return null
-        val pairs = file.readLines()
-            .asSequence()
-            .filter { it.isNotBlank() && !it.startsWith("#") }
-            .mapNotNull { line ->
-                val parts = line.split('\t')
-                if (parts.size >= 7) "${parts[5]}=${parts[6]}" else null
-            }
-            .joinToString("; ")
-        return pairs.takeIf { it.isNotBlank() }
+        return NetscapeCookies.header(file.readLines())
     }
 
     private companion object {

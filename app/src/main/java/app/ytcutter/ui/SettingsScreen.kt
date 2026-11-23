@@ -239,7 +239,7 @@ fun SettingsScreen(engine: EngineState) {
 
         Spacer(Modifier.height(18.dp))
         Text(
-            "YT Cutter · 0.2.0 · arm64-v8a",
+            "YT Cutter · 0.2.1 · arm64-v8a",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.fillMaxWidth(),

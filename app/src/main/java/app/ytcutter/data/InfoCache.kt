@@ -22,6 +22,9 @@ object InfoCache {
         file.absolutePath
     }.getOrNull()
 
+    fun existingPath(dir: File, url: String): String? =
+        File(dir, fileName(url)).takeIf { it.exists() && it.length() > 0 }?.absolutePath
+
     fun pathFor(url: String): String? {
         val path = paths[fileName(url)] ?: return null
         return path.takeIf { File(it).length() > 0 }

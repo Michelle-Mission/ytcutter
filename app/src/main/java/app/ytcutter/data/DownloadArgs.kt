@@ -45,6 +45,9 @@ object DownloadArgs {
         return args
     }
 
+    fun stripInfoJson(options: List<Pair<String, String?>>): List<Pair<String, String?>> =
+        options.filterNot { it.first == "--load-info-json" }
+
     fun sectionTime(totalSeconds: Int): String {
         val s = totalSeconds.coerceAtLeast(0)
         return String.format(java.util.Locale.ROOT, "%02d:%02d:%02d", s / 3600, (s % 3600) / 60, s % 60)

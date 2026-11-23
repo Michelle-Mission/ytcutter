@@ -173,10 +173,12 @@ object YtDlpRepo {
             val fromInfoJson = options.any { it.first == "--load-info-json" }
             val extractorArgs = if (fromInfoJson) null else youtubeArgs(context, url)
             val exit = runDownload(url, options, processId, extractorArgs, onLine)
-            if (exit != 0 && extractorArgs != null) {
-                runDownload(url, options, processId, null, onLine)
-            } else {
-                exit
+            when {
+                exit == 0 -> exit
+                // JSON cache bisa kedaluwarsa: ulangi dengan ekstraksi penuh.
+                fromInfoJson -> runDownload(url, DownloadArgs.stripInfoJson(options), processId, null, onLine)
+                extractorArgs != null -> runDownload(url, options, processId, null, onLine)
+                else -> exit
             }
         }
     }

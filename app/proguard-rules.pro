@@ -12,3 +12,5 @@
 -dontwarn java.beans.**
 -dontwarn javax.script.**
 -dontwarn org.mozilla.javascript.**
+-keep class org.mozilla.javascript.** { *; }
+-keepattributes Signature,*Annotation*,EnclosingMethod,MethodParameters
