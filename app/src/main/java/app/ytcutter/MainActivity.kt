@@ -62,6 +62,8 @@ import app.ytcutter.data.DownloadRequest
 import app.ytcutter.data.Downloads
 import app.ytcutter.data.EngineState
 import app.ytcutter.data.ErrorMapper
+import app.ytcutter.data.InfoCache
+import app.ytcutter.data.YouTubeInfo
 import app.ytcutter.data.MetadataParser
 import app.ytcutter.data.YtDlpRepo
 import app.ytcutter.ui.DownloadsScreen
@@ -280,17 +282,30 @@ private fun MainContent() {
                         } else {
                             homeState = HomeState.Loading
                             scope.launch {
-                                val result = YtDlpRepo.json(context, url)
-                                val info = result.json?.let { MetadataParser.parse(it) }
-                                homeState = when {
-                                    info == null -> HomeState.Error(
-                                        ErrorMapper.map(result.error ?: "").message
-                                    )
-                                    info.heights.isEmpty() && !info.hasAudio -> HomeState.Error(
-                                        "URL ini bukan video tunggal (playlist/kanal). " +
-                                            "Tempel tautan video."
-                                    )
-                                    else -> HomeState.Loaded(info, url, result.json?.let { saveInfoJson(context, it) })
+                                val fast = YouTubeInfo.fetch(context, url).getOrNull()
+                                if (fast != null) {
+                                    homeState = HomeState.Loaded(fast, url, InfoCache.pathFor(url))
+                                    scope.launch {
+                                        val meta = YtDlpRepo.json(context, url)
+                                        if (meta.json != null) InfoCache.save(context, url, meta.json)
+                                    }
+                                } else {
+                                    val result = YtDlpRepo.json(context, url)
+                                    val info = result.json?.let { MetadataParser.parse(it) }
+                                    homeState = when {
+                                        info == null -> HomeState.Error(
+                                            ErrorMapper.map(result.error ?: "").message
+                                        )
+                                        info.heights.isEmpty() && !info.hasAudio -> HomeState.Error(
+                                            "URL ini bukan video tunggal (playlist/kanal). " +
+                                                "Tempel tautan video."
+                                        )
+                                        else -> HomeState.Loaded(
+                                            info,
+                                            url,
+                                            result.json?.let { InfoCache.save(context, url, it) }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -331,8 +346,3 @@ private fun MainContent() {
         }
     }
 }
-private fun saveInfoJson(context: android.content.Context, json: String): String? = runCatching {
-    val file = java.io.File(context.cacheDir, "info.json")
-    file.writeText(json)
-    file.absolutePath
-}.getOrNull()
