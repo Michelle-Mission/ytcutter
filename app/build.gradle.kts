@@ -14,8 +14,8 @@ android {
         applicationId = "app.ytcutter"
         minSdk = 29
         targetSdk = 36
-        versionCode = 14
-        versionName = "0.3.0"
+        versionCode = 15
+        versionName = "0.4.0"
         ndk {
             abiFilters += "arm64-v8a"
         }
@@ -72,10 +72,24 @@ kotlin {
 }
 
 dependencies {
+    implementation(project(":core:model"))
+    implementation(project(":core:common"))
+    implementation(project(":core:database"))
+    implementation(project(":core:datastore"))
+    implementation(project(":core:network"))
+    implementation(project(":core:notifications"))
+    implementation(project(":core:designsystem"))
+    implementation(project(":core:navigation"))
+    implementation(project(":core:data"))
+    implementation(project(":feature:home"))
+    implementation(project(":feature:downloads"))
+    implementation(project(":feature:settings"))
+    implementation(project(":feature:cookies"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.navigation.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
