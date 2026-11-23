@@ -69,3 +69,7 @@ akses ke akunmu, jadi simpan hanya di perangkat sendiri dan jangan bagikan.
 ## Lisensi
 
 GPL-3.0, karena `youtubedl-android` berlisensi GPL-3.0.
+## Lisensi
+
+YT Cutter adalah perangkat lunak bebas di bawah GNU General Public License v3.0.
+Ini karena proyek memakai NewPipeExtractor (GPL-3.0). Source: https://github.com/Michelle-Mission/ytcutter

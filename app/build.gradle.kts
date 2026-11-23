@@ -86,6 +86,8 @@ dependencies {
     implementation(libs.coil.network.okhttp)
     implementation(libs.youtubedl.library)
     implementation(libs.youtubedl.ffmpeg)
+    implementation(libs.newpipeextractor)
+    implementation(libs.okhttp)
 
     debugImplementation(libs.androidx.ui.tooling)
     testImplementation(libs.junit)
