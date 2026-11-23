@@ -86,9 +86,7 @@ class HistoryRepo private constructor(context: Context) {
 
     fun cancel(id: Long) {
         val row = get(id) ?: return
-        if (HistoryRules.isFinal(row.status) || row.status == DownloadStatus.QUEUED) {
-            finish(id, DownloadStatus.CANCELED)
-        }
+        if (row.status != DownloadStatus.DONE) finish(id, DownloadStatus.CANCELED)
     }
 
     fun retry(id: Long) {

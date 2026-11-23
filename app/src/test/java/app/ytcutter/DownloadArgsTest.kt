@@ -4,6 +4,7 @@ import app.ytcutter.core.Quality
 import app.ytcutter.data.DownloadArgs
 import app.ytcutter.data.DownloadRequest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DownloadArgsTest {
@@ -31,6 +32,8 @@ class DownloadArgsTest {
                 "--download-sections" to "*00:00:15-00:03:40",
                 "--no-playlist" to null,
                 "--newline" to null,
+                "--continue" to null,
+                "--progress-template" to "download:YTC %(progress.downloaded_bytes)s %(progress.total_bytes_estimate)s %(progress._percent_str)s %(progress._speed_str)s %(progress._eta_str)s",
                 "-o" to out
             ),
             DownloadArgs.build(req, out, cookiesPath = null)
@@ -58,6 +61,8 @@ class DownloadArgsTest {
                 "--download-sections" to "*00:00:00-00:01:05",
                 "--no-playlist" to null,
                 "--newline" to null,
+                "--continue" to null,
+                "--progress-template" to "download:YTC %(progress.downloaded_bytes)s %(progress.total_bytes_estimate)s %(progress._percent_str)s %(progress._speed_str)s %(progress._eta_str)s",
                 "-o" to out
             ),
             DownloadArgs.build(req, out, cookiesPath = null)
@@ -74,6 +79,19 @@ class DownloadArgsTest {
         )
         val args = DownloadArgs.build(req, out, cookiesPath = "/files/cookies.txt")
         assertEquals("--cookies" to "/files/cookies.txt", args.first())
+    }
+
+    @Test
+    fun resumeAndProgressTemplateAlwaysPresent() {
+        val req = DownloadRequest(
+            url = "https://youtu.be/dQw4w9WgXcQ",
+            quality = Quality("720p", 720),
+            start = 0,
+            end = 10
+        )
+        val args = DownloadArgs.build(req, out, cookiesPath = null)
+        assertTrue(args.any { it.first == "--continue" })
+        assertTrue(args.any { it.first == "--progress-template" && it.second!!.startsWith("download:YTC ") })
     }
 
     @Test

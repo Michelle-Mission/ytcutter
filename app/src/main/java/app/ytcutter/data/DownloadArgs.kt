@@ -41,6 +41,10 @@ object DownloadArgs {
         req.infoJson?.let { args += "--load-info-json" to it }
         args += "--no-playlist" to null
         args += "--newline" to null
+        args += "--continue" to null
+        args += "--progress-template" to "download:YTC %(progress.downloaded_bytes)s " +
+            "%(progress.total_bytes_estimate)s %(progress._percent_str)s " +
+            "%(progress._speed_str)s %(progress._eta_str)s"
         args += "-o" to outPath
         return args
     }

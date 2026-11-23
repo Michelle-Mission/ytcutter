@@ -88,6 +88,7 @@ dependencies {
     implementation(libs.youtubedl.ffmpeg)
     implementation(libs.newpipeextractor)
     implementation(libs.okhttp)
+    implementation(libs.androidx.work.runtime)
 
     debugImplementation(libs.androidx.ui.tooling)
     testImplementation(libs.junit)
