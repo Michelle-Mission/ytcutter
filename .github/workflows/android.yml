@@ -41,8 +41,17 @@ jobs:
       - name: Build
         run: gradle --no-daemon testDebugUnitTest assembleRelease
 
+      - name: Release asset name
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: cp app/build/outputs/apk/release/app-release.apk "YT-Cutter-${GITHUB_REF_NAME#v}.apk"
+
       - name: Checksum
-        run: sha256sum app/build/outputs/apk/release/app-release.apk | tee sha256.txt
+        run: |
+          if [ -f "YT-Cutter-${GITHUB_REF_NAME#v}.apk" ]; then
+            sha256sum "YT-Cutter-${GITHUB_REF_NAME#v}.apk" | tee sha256.txt
+          else
+            sha256sum app/build/outputs/apk/release/app-release.apk | tee sha256.txt
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
@@ -56,5 +65,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            app/build/outputs/apk/release/app-release.apk
+            YT-Cutter-*.apk
             sha256.txt
