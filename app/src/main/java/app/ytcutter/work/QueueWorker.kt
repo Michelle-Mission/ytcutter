@@ -70,6 +70,7 @@ class QueueWorker(
             repo.markRunning(row.id)
             val processId = YtDlpRepo.newProcessId()
             ActiveWork.processId = processId
+            ActiveWork.runningId = row.id
             val request = DownloadRequest(
                 url = row.url,
                 quality = Quality(row.qualityLabel, row.height),
@@ -83,6 +84,7 @@ class QueueWorker(
             var latestPercent = 0
             var latestDetail: String? = null
             var canceled = false
+            var publishFailed = false
             val notifierScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
             val notifier = notifierScope.launch {
                 while (true) {
@@ -99,7 +101,7 @@ class QueueWorker(
                     delay(500)
                 }
             }
-            val exit = runCatching {
+            val exit = try {
                 YtDlpRepo.execute(applicationContext, row.url, args, processId) { line ->
                     lastLine = line
                     ProgressLine.parse(line)?.let { p ->
@@ -108,13 +110,20 @@ class QueueWorker(
                         runCatching { repo.updateProgress(row.id, p.percent, p.detail) }
                     }
                 }
-            }.getOrElse { error ->
+            } catch (canceled: kotlinx.coroutines.CancellationException) {
+                notifier.cancel()
+                notifierScope.cancel()
+                ActiveWork.processId = null
+                ActiveWork.runningId = null
+                throw canceled
+            } catch (error: Exception) {
                 lastLine = error.message ?: ""
                 -1
             }
             notifier.cancel()
             notifierScope.cancel()
             ActiveWork.processId = null
+            ActiveWork.runningId = null
 
             if (ActiveWork.cancelId == row.id) {
                 ActiveWork.cancelId = null
@@ -125,8 +134,8 @@ class QueueWorker(
                 val displayName = FileNames.displayName(row.title, row.startSec, row.endSec, ext)
                 val uri = MediaStorePublisher.publish(applicationContext, outFile, displayName, audio)
                 if (uri != null) {
-                    outDir.deleteRecursively()
                     repo.finish(row.id, DownloadStatus.DONE, uri.toString(), displayName)
+                    outDir.deleteRecursively()
                     DownloadNotifications.finished(
                         applicationContext,
                         row.title,
@@ -135,6 +144,7 @@ class QueueWorker(
                     return
                 }
                 lastLine = "Gagal menyimpan ke galeri"
+                publishFailed = true
             }
 
             if (canceled) {
@@ -150,7 +160,9 @@ class QueueWorker(
                 continue
             }
 
-            outDir.deleteRecursively()
+            // File hasil tetap disimpan bila hanya publish ke galeri yang gagal,
+            // supaya percobaan ulang tidak mengunduh ulang seluruh video.
+            if (!publishFailed) outDir.deleteRecursively()
             repo.finish(row.id, DownloadStatus.FAILED, error = mapped.message, action = mapped.action)
             DownloadNotifications.finished(
                 applicationContext,
@@ -175,7 +187,7 @@ class QueueWorker(
                 )
                 .build()
             WorkManager.getInstance(context.applicationContext)
-                .enqueueUniqueWork(NAME, ExistingWorkPolicy.KEEP, request)
+                .enqueueUniqueWork(NAME, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
         }
     }
 }

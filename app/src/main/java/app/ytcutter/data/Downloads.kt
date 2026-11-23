@@ -4,6 +4,7 @@ import android.content.Context
 import app.ytcutter.data.history.DownloadStatus
 import app.ytcutter.data.history.HistoryRepo
 import app.ytcutter.work.ActiveWork
+import app.ytcutter.work.CancelRules
 import app.ytcutter.work.QueueWorker
 
 /** Fasad kecil antara UI dan antrean WorkManager + DB riwayat. */
@@ -18,12 +19,15 @@ object Downloads {
     }
 
     fun cancel(context: Context, id: Long) {
-        ActiveWork.cancelId = id
-        YtDlpRepo.cancel(ActiveWork.processId)
+        if (CancelRules.shouldKill(id, ActiveWork.runningId)) {
+            ActiveWork.cancelId = id
+            YtDlpRepo.cancel(ActiveWork.processId)
+        }
         HistoryRepo.get(context).cancel(id)
     }
 
     fun retry(context: Context, id: Long) {
+        if (ActiveWork.cancelId == id) ActiveWork.cancelId = null
         HistoryRepo.get(context).retry(id)
         QueueWorker.ensureRunning(context)
     }
