@@ -1,6 +1,7 @@
 package app.ytcutter
 
 import android.Manifest
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -59,6 +60,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.ytcutter.core.UrlValidator
 import app.ytcutter.data.CrashLog
 import app.ytcutter.data.DownloadRequest
+import app.ytcutter.data.Action
+import app.ytcutter.data.history.HistoryRepo
 import app.ytcutter.data.Downloads
 import app.ytcutter.data.EngineState
 import app.ytcutter.data.ErrorMapper
@@ -239,15 +242,26 @@ private fun MainContent() {
     var homeState by remember { mutableStateOf<HomeState>(HomeState.Idle) }
 
     LaunchedEffect(Unit) {
+        Downloads.resumePending(context.applicationContext)
         // beri waktu boot; update tidak boleh ikut memperlambat start
         kotlinx.coroutines.delay(12_000)
-        if (!Downloads.isRunning()) {
-            YtDlpRepo.autoUpdateOnce(context.applicationContext)
-        }
+        val busy = HistoryRepo.get(context.applicationContext).downloads.value
+            .any { it.status == app.ytcutter.data.history.DownloadStatus.RUNNING }
+        if (!busy) YtDlpRepo.autoUpdateOnce(context.applicationContext)
     }
     var tab by remember { mutableIntStateOf(0) }
     var showFormat by remember { mutableStateOf(false) }
-    val downloadState by Downloads.state.collectAsStateWithLifecycle()
+    val history by HistoryRepo.get(context.applicationContext).downloads.collectAsStateWithLifecycle()
+    var retryAfterLogin by remember { mutableStateOf<Long?>(null) }
+    val cookieLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val id = retryAfterLogin
+        retryAfterLogin = null
+        if (id != null && result.resultCode == android.app.Activity.RESULT_OK) {
+            Downloads.retry(context, id)
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -323,8 +337,43 @@ private fun MainContent() {
                     onChooseFormat = { showFormat = true }
                 )
                 1 -> DownloadsScreen(
-                    state = downloadState,
-                    onCancel = { Downloads.cancel() }
+                    rows = history,
+                    onCancel = { Downloads.cancel(context, it) },
+                    onRetry = { row ->
+                        if (row.errorAction == Action.IMPORT_COOKIES) {
+                            retryAfterLogin = row.id
+                            cookieLauncher.launch(
+                                Intent(context, app.ytcutter.ui.CookieLoginActivity::class.java)
+                            )
+                        } else {
+                            Downloads.retry(context, row.id)
+                        }
+                    },
+                    onDelete = { HistoryRepo.get(context).delete(it) },
+                    onOpen = { row ->
+                        runCatching {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW).apply {
+                                    setDataAndType(android.net.Uri.parse(row.uri), "video/*")
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                            )
+                        }
+                    },
+                    onShare = { row ->
+                        runCatching {
+                            context.startActivity(
+                                Intent.createChooser(
+                                    Intent(Intent.ACTION_SEND).apply {
+                                        type = "video/*"
+                                        putExtra(Intent.EXTRA_STREAM, android.net.Uri.parse(row.uri))
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    },
+                                    "Bagikan video"
+                                )
+                            )
+                        }
+                    }
                 )
                 else -> SettingsScreen(engine = EngineState.Ready)
             }
@@ -339,7 +388,7 @@ private fun MainContent() {
                 onDismiss = { showFormat = false },
                 onStart = { quality, start, end ->
                     showFormat = false
-                    val started = Downloads.start(
+                    val started = Downloads.enqueue(
                         context,
                         DownloadRequest(loaded.url, quality, start, end, loaded.infoJson),
                         loaded.info.title
