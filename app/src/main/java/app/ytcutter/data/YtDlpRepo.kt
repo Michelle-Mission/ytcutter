@@ -145,7 +145,7 @@ object YtDlpRepo {
                 addOption("--no-check-formats")
                 addOption("--socket-timeout", "15")
                 addOption("--extractor-retries", "1")
-                CookieStore.path(context)?.let { addOption("--cookies", it) }
+                CookieGate.active(context)?.let { addOption("--cookies", it) }
                 extractorArgs?.let { addOption("--extractor-args", it) }
             }
             val response = YoutubeDL.getInstance().execute(request)

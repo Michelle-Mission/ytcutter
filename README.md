@@ -9,10 +9,11 @@ rentang detik, hasilnya masuk galeri. Mesin: `yt-dlp` + `ffmpeg` yang dibundel
 - Tempel/ambil URL, ambil metadata (judul, durasi, thumbnail).
 - Pilih resolusi dari format asli video (2160/1440/1080/720/480/360) atau audio-only (m4a).
 - Tandai detik awal–akhir (dual slider + isian `mm:ss`); hasil langsung terpotong.
-- Progress nyata, batal, buka/bagikan hasil.
-- Unduhan lanjut saat app di background (foreground service).
-- Login YouTube lewat WebView (cookies HttpOnly ikut tertangkap), atau impor `cookies.txt`,
-  untuk video private/age-restricted/verifikasi.
+- Riwayat unduhan persisten + progress nyata (byte), batal, ulangi, buka/bagikan hasil.
+- Antrean unduhan jalan di background (WorkManager) dan lanjut otomatis setelah app/proses mati.
+- Pengaturan → Cookie: switch **Pakai cookie** (default mati), tambah cookie lewat WebView
+  dengan URL yang kamu ketik sendiri, daftar entri (aktif/nonaktif), impor/ekspor papan klip,
+  dan ekspor `cookies.txt`. Cookie HttpOnly ikut tertangkap.
 - Update `yt-dlp` dari Pengaturan tanpa memasang APK baru.
 
 ## Build
@@ -38,13 +39,14 @@ adb install -r app/build/outputs/apk/release/app-arm64-v8a-release.apk
 
 App ini **tidak** memecahkan CAPTCHA dan tidak memakai layanan solver. Yang dipakai:
 
-1. **Cookies login.** Pengaturan → Login YouTube (WebView), atau impor `cookies.txt`
-   hasil ekspor browser. Ini menyelesaikan hampir semua challenge,
-   video private, dan age-gate.
+1. **Cookie opsional.** Pengaturan → Cookie → **+ Cookie**, tempel URL YouTube, login di
+   WebView yang terbuka, lalu Selesai. Atau impor `cookies.txt` lewat menu titik tiga.
+   Nyalakan switch **Pakai cookie** agar ikut dikirim. Ini menyelesaikan hampir semua
+   challenge, video private, dan age-gate.
 2. **Fallback client yt-dlp** (`visionos,android_vr,tv`) dan update `yt-dlp` terbaru.
 
-Belum ada pembuatan PO token otomatis (BGUtils/BotGuard via WebView) — direncanakan
-fase 2, dan bersifat rapuh karena mengikuti perubahan YouTube.
+PO token dibuat otomatis lewat WebView (BGUtils) dan diberikan ke yt-dlp; tetap bisa
+rusak kalau YouTube mengubah alurnya, jadi update yt-dlp bila gagal.
 
 Catatan: mengunduh konten YouTube dibatasi Terms of Service YouTube; cookies memberi
 akses ke akunmu, jadi simpan hanya di perangkat sendiri dan jangan bagikan.

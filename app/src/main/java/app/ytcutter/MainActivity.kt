@@ -62,6 +62,7 @@ import app.ytcutter.data.CrashLog
 import app.ytcutter.data.DownloadRequest
 import app.ytcutter.data.Action
 import app.ytcutter.data.history.HistoryRepo
+import app.ytcutter.ui.cookies.CookieScreen
 import app.ytcutter.data.Downloads
 import app.ytcutter.data.EngineState
 import app.ytcutter.data.ErrorMapper
@@ -250,6 +251,7 @@ private fun MainContent() {
         if (!busy) YtDlpRepo.autoUpdateOnce(context.applicationContext)
     }
     var tab by remember { mutableIntStateOf(0) }
+    var showCookies by remember { mutableStateOf(false) }
     var showFormat by remember { mutableStateOf(false) }
     val history by HistoryRepo.get(context.applicationContext).downloads.collectAsStateWithLifecycle()
     var retryAfterLogin by remember { mutableStateOf<Long?>(null) }
@@ -288,6 +290,10 @@ private fun MainContent() {
         }
     ) { padding ->
         Box(Modifier.padding(padding)) {
+            if (showCookies) {
+                CookieScreen(onBack = { showCookies = false })
+                return@Box
+            }
             when (tab) {
                 0 -> HomeScreen(
                     state = homeState,
@@ -375,7 +381,10 @@ private fun MainContent() {
                         }
                     }
                 )
-                else -> SettingsScreen(engine = EngineState.Ready)
+                else -> SettingsScreen(
+                    engine = EngineState.Ready,
+                    onOpenCookies = { showCookies = true }
+                )
             }
         }
     }

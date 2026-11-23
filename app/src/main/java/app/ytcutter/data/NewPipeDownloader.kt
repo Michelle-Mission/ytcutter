@@ -48,6 +48,7 @@ class NewPipeDownloader(context: Context) : Downloader() {
     }
 
     private fun cookies(): String? {
+        if (!app.ytcutter.data.cookies.CookiePrefs.useCookies(appContext)) return null
         val file = CookieStore.file(appContext)
         if (!file.exists() || file.length() == 0L) return null
         return NetscapeCookies.header(file.readLines())

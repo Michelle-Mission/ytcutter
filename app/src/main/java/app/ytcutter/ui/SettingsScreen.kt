@@ -1,10 +1,6 @@
 package app.ytcutter.ui
 
-import android.app.Activity
-import android.content.Intent
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,11 +13,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Cookie
-import androidx.compose.material.icons.filled.Login
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.UploadFile
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -41,18 +35,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import app.ytcutter.data.CookieStore
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.ytcutter.data.CrashLog
 import app.ytcutter.data.EngineState
 import app.ytcutter.data.YtDlpRepo
+import app.ytcutter.data.cookies.CookiePrefs
+import app.ytcutter.data.cookies.CookiesRepo
 import kotlinx.coroutines.launch
 
 @Composable
-fun SettingsScreen(engine: EngineState) {
+fun SettingsScreen(engine: EngineState, onOpenCookies: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val cookieEntries by CookiesRepo.get(context).entries.collectAsStateWithLifecycle()
+    val cookieOn = CookiePrefs.useCookies(context)
+    val activeCookies = cookieEntries.count { it.enabled }
 
-    var cookieCount by remember { mutableStateOf(countCookies(context)) }
     var updateMessage by remember { mutableStateOf<String?>(null) }
     val lastCrash = remember { CrashLog.last(context) }
     var crashVisible by remember { mutableStateOf(lastCrash != null) }
@@ -66,26 +64,6 @@ fun SettingsScreen(engine: EngineState) {
         }
     }
 
-    val loginLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            cookieCount = countCookies(context)
-            updateMessage = "Cookies tersimpan"
-        } else {
-            updateMessage = "Login dibatalkan atau tidak ada cookies"
-        }
-    }
-
-    val importLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        val ok = CookieStore.importFrom(context, uri)
-        cookieCount = countCookies(context)
-        updateMessage = if (ok) "Cookies diimpor" else "File cookies tidak valid"
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -94,6 +72,8 @@ fun SettingsScreen(engine: EngineState) {
     ) {
         Text("Pengaturan", style = MaterialTheme.typography.headlineSmall)
         Spacer(Modifier.height(20.dp))
+
+        CategoryLabel("Unduhan")
 
         Card(shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(18.dp)) {
@@ -182,70 +162,69 @@ fun SettingsScreen(engine: EngineState) {
             }
         }
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(18.dp))
+        CategoryLabel("Cookie")
 
-        Card(shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(18.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Cookie,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text("Cookies YouTube", style = MaterialTheme.typography.titleSmall)
-                }
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    if (cookieCount > 0) "$cookieCount cookies aktif. Video yang butuh login bisa diunduh." +
-                        " Cookies disimpan hanya di perangkat ini."
-                    else "Belum ada cookies. Video tertentu butuh login (usia, privasi, atau anti-bot).",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+        Card(
+            shape = MaterialTheme.shapes.large,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onOpenCookies)
+        ) {
+            Row(
+                Modifier.padding(18.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.Cookie,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
                 )
-                Spacer(Modifier.height(14.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
-                        onClick = {
-                            loginLauncher.launch(
-                                Intent(context, CookieLoginActivity::class.java)
-                            )
-                        },
-                        shape = MaterialTheme.shapes.small
-                    ) {
-                        Icon(Icons.Default.Login, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Login YouTube")
-                    }
-                    OutlinedButton(
-                        onClick = { importLauncher.launch(arrayOf("text/plain", "*/*")) },
-                        shape = MaterialTheme.shapes.small
-                    ) {
-                        Icon(Icons.Default.UploadFile, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Impor file")
-                    }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        if (activeCookies > 0) "$activeCookies cookie aktif" else "Belum ada cookie",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Text(
+                        if (cookieOn) "Dipakai saat mengunduh" else "Tidak dikirim saat mengunduh",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                if (cookieCount > 0) {
-                    TextButton(onClick = {
-                        CookieStore.clear(context)
-                        cookieCount = 0
-                        updateMessage = "Cookies dihapus"
-                    }) { Text("Hapus cookies") }
-                }
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 
         Spacer(Modifier.height(18.dp))
-        Text(
-            "YT Cutter · 0.2.1 · arm64-v8a",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
+        CategoryLabel("Tentang")
+        Card(shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp)) {
+                Text("YT Cutter", style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    "Versi 0.3.0 · arm64-v8a · GPL-3.0",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
+}
+
+@Composable
+private fun CategoryLabel(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(bottom = 8.dp)
+    )
 }
 
 @Composable
@@ -265,9 +244,4 @@ private fun StatePill(text: String, error: Boolean = false) {
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
         )
     }
-}
-
-private fun countCookies(context: android.content.Context): Int {
-    val text = CookieStore.load(context) ?: return 0
-    return text.lineSequence().count { it.isNotBlank() && !it.startsWith("#") }
 }
