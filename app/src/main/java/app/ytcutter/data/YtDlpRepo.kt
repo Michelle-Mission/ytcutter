@@ -191,7 +191,7 @@ object YtDlpRepo {
         if (!app.ytcutter.core.UrlValidator.isYouTube(url)) return null
         val token = PoToken.extractorArgs(context, url) ?: return null
         // tv_downgraded bikin "The page needs to be reloaded" saat pakai cookies.
-        return "player_client=default,-tv_downgraded;$token"
+        return "youtube:player_client=default,-tv_downgraded;$token"
     }
 
     fun cancel(processId: String?): Boolean {
