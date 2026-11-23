@@ -72,7 +72,7 @@ fun UpdateCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("Versi aplikasi $version", style = MaterialTheme.typography.titleMedium)
+            Text("Versi aplikasi $version", style = MaterialTheme.typography.titleSmall)
             if (notes.isNotBlank()) {
                 Text(
                     notes.take(400),

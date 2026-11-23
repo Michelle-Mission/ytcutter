@@ -22,6 +22,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import app.ytcutter.core.designsystem.ScreenHeader
+import app.ytcutter.core.designsystem.SectionHeader
+import app.ytcutter.core.designsystem.SettingsRow
 import app.ytcutter.core.designsystem.UpdateBanner
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -65,10 +68,13 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp)
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 24.dp)
     ) {
-        Text("Pengaturan", style = MaterialTheme.typography.headlineSmall)
-        Spacer(Modifier.height(20.dp))
+        ScreenHeader(
+            title = "Pengaturan",
+            horizontalPadding = 0.dp
+        )
 
         if (updateVersion != null) {
             UpdateBanner(
@@ -81,35 +87,19 @@ fun SettingsScreen(
 
         CategoryLabel("Unduhan")
 
-        Card(
-            shape = MaterialTheme.shapes.large,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onOpenComponents)
-        ) {
-            Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.SystemUpdate,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text("Komponen", style = MaterialTheme.typography.titleSmall)
-                    Text(
-                        "Versi aplikasi, yt-dlp, dan pemeriksaan pembaruan",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+        SettingsRow(
+            icon = Icons.Default.SystemUpdate,
+            title = "Komponen",
+            subtitle = "Versi aplikasi, yt-dlp, dan pemeriksaan pembaruan",
+            onClick = onOpenComponents,
+            trailing = {
                 Icon(
                     Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        }
+        )
 
         if (crashVisible && lastCrash != null) {
             Spacer(Modifier.height(14.dp))
@@ -146,41 +136,19 @@ fun SettingsScreen(
         Spacer(Modifier.height(18.dp))
         CategoryLabel("Cookie")
 
-        Card(
-            shape = MaterialTheme.shapes.large,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onOpenCookies)
-        ) {
-            Row(
-                Modifier.padding(18.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.Cookie,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        if (activeCookies > 0) "$activeCookies cookie aktif" else "Belum ada cookie",
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    Text(
-                        if (cookieOn) "Dipakai saat mengunduh" else "Tidak dikirim saat mengunduh",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+        SettingsRow(
+            icon = Icons.Default.Cookie,
+            title = if (activeCookies > 0) "$activeCookies cookie aktif" else "Belum ada cookie",
+            subtitle = if (cookieOn) "Dipakai saat mengunduh" else "Tidak dikirim saat mengunduh",
+            onClick = onOpenCookies,
+            trailing = {
                 Icon(
                     Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        }
+        )
 
         Spacer(Modifier.height(18.dp))
         CategoryLabel("Tentang")
@@ -204,30 +172,5 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun CategoryLabel(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(bottom = 8.dp)
-    )
-}
+private fun CategoryLabel(text: String) = SectionHeader(text)
 
-@Composable
-private fun StatePill(text: String, error: Boolean = false) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = if (error) MaterialTheme.colorScheme.errorContainer
-            else MaterialTheme.colorScheme.primaryContainer
-        ),
-        shape = MaterialTheme.shapes.small
-    ) {
-        Text(
-            text,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (error) MaterialTheme.colorScheme.onErrorContainer
-            else MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-        )
-    }
-}

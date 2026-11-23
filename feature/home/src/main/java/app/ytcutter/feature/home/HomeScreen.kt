@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import app.ytcutter.core.common.TimeCode
 import app.ytcutter.core.designsystem.ShimmerBox
 import app.ytcutter.core.data.VideoInfo
+import app.ytcutter.core.designsystem.ScreenHeader
 import coil3.compose.AsyncImage
 
 sealed interface HomeState {
@@ -86,18 +87,13 @@ fun HomeScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp)
-            .padding(top = 20.dp, bottom = 28.dp)
+            .padding(bottom = 24.dp)
     ) {
-        Column {
-            Text("YT Cutter", style = MaterialTheme.typography.headlineSmall)
-            Text(
-                "Potong video YouTube tanpa unduh penuh",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        Spacer(Modifier.height(24.dp))
+        ScreenHeader(
+            title = "YT Cutter",
+            subtitle = "Potong video YouTube tanpa unduh penuh",
+            horizontalPadding = 0.dp
+        )
 
         OutlinedTextField(
             value = text,
@@ -237,7 +233,7 @@ private fun EmptyHint() {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 32.dp, horizontal = 20.dp),
+                .padding(vertical = 32.dp, horizontal = 18.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
@@ -306,7 +302,7 @@ private fun VideoCard(info: VideoInfo, onChooseFormat: () -> Unit) {
                     }
                 }
             }
-            Column(Modifier.padding(16.dp)) {
+            Column(Modifier.padding(18.dp)) {
                 Text(
                     info.title,
                     style = MaterialTheme.typography.titleMedium,
@@ -345,7 +341,7 @@ private fun InfoPill(text: String) {
             text,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
         )
     }
 }

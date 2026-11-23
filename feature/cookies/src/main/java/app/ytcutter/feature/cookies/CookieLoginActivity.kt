@@ -76,7 +76,7 @@ class CookieLoginActivity : ComponentActivity() {
                                 )
                             }
                             Column(Modifier.weight(1f)) {
-                                Text("Ambil cookie", style = MaterialTheme.typography.titleMedium)
+                                Text("Ambil cookie", style = MaterialTheme.typography.titleLarge)
                                 Text(
                                     "Login di halaman ini; keluar otomatis setelah login terdeteksi",
                                     style = MaterialTheme.typography.bodySmall,

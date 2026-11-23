@@ -1,0 +1,58 @@
+# DESIGN.md — YT Cutter
+
+Satu bahasa visual untuk semua layar. Modul acuan: `:core:designsystem`.
+
+## Mode
+Operate. Tujuan tiap layar: menyelesaikan tugas cepat dan jelas. Konsistensi dan keterbacaan mengalahkan ekspresi.
+
+## Kerangka layar
+
+| Jenis layar | Komponen | Contoh |
+|---|---|---|
+| Tab utama | `ScreenHeader` di dalam konten (judul `headlineSmall`, subjudul `bodySmall`), tanpa TopAppBar | Beranda, Unduhan, Pengaturan |
+| Layar detail | `ScreenScaffold` dengan TopAppBar (judul `titleLarge`, tombol kembali) | Cookie, Komponen, Tentang |
+| Lembar bawah | Judul `titleMedium` | Pilih format |
+| Status boot | Judul `titleLarge` | Menyiapkan mesin |
+
+Padding layar selalu 20dp kiri/kanan. Tab: atas 20dp, bawah 24dp. Detail: TopAppBar menangani atas; konten 20dp.
+
+## Skala tipe
+
+| Peran | Style | Ukuran |
+|---|---|---|
+| Judul layar tab | `headlineSmall` | 26sp bold |
+| Judul layar detail / boot | `titleLarge` | 20sp semibold |
+| Judul menonjol (video, sheet) | `titleMedium` | 16sp semibold |
+| Judul kartu/baris | `titleSmall` | 14sp semibold |
+| Isi | `bodyMedium` | 13.5sp |
+| Meta/sekunder | `bodySmall` | 12sp |
+| Tombol | `labelLarge` | 13sp semibold |
+| Pil/label kecil | `labelSmall` | 11sp medium |
+
+Aturan: `titleMedium` hanya untuk judul video/lembar; semua judul kartu dan baris memakai `titleSmall`. Teks sekunder selalu `bodySmall` + `onSurfaceVariant`.
+
+## Jarak (`Spacing`)
+
+`xs 4 · sm 8 · md 12 · lg 16 · xl 20 · xxl 24 · card 18`
+
+- Isi kartu: 18dp (`AppCard`).
+- Baris daftar (`SettingsRow`): 16dp horizontal, 12dp vertikal.
+- Jarak antar kartu daftar: 10dp.
+- Antar bagian di layar tab: 18–20dp; header bagian ke isi: 8dp (`SectionHeader`).
+- Teks meta ke judul: 3–4dp.
+
+## Komponen wajib
+
+- `ScreenHeader`, `ScreenScaffold`, `AppCard`, `SectionHeader`, `StatusPill`, `SettingsRow`, `UpdateBanner`, `UpdateCard`, `CookieStatusLine`.
+- Kartu tidak bersarang. Satu `AppCard` per entri.
+- Tombol memakai `MaterialTheme.shapes.small` untuk aksi dalam kartu, `medium` untuk aksi utama.
+
+## Warna & permukaan
+
+- Aksen `primary` (merah), teks sekunder `onSurfaceVariant`, peringatan `error`/`errorContainer`.
+- `StatusPill`: sukses `primaryContainer`, gagal `errorContainer`, teks `labelSmall`.
+- Tanpa gradien teks, bayangan keras, atau border kiri berwarna.
+
+## Gerak
+
+Satu transisi masuk per perubahan state (`AnimatedContent`, 220ms), tanpa animasi berulang di luar indikator progres.

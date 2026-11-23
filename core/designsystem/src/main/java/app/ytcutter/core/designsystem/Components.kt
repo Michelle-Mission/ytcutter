@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -27,7 +29,42 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+
+object Spacing {
+    val xs: Dp = 4.dp
+    val sm: Dp = 8.dp
+    val md: Dp = 12.dp
+    val lg: Dp = 16.dp
+    val xl: Dp = 20.dp
+    val xxl: Dp = 24.dp
+    val card: Dp = 18.dp
+}
+
+@Composable
+fun ScreenHeader(
+    title: String,
+    subtitle: String? = null,
+    horizontalPadding: Dp = Spacing.xl,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(start = horizontalPadding, end = horizontalPadding, top = Spacing.xl, bottom = Spacing.lg)
+    ) {
+        Text(title, style = MaterialTheme.typography.headlineSmall)
+        if (subtitle != null) {
+            Spacer(Modifier.height(Spacing.xs))
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +78,7 @@ fun ScreenScaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text(title) },
+                title = { Text(title, style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {
@@ -69,7 +106,7 @@ fun AppCard(
     val base = modifier.fillMaxWidth()
     val shaped = if (onClick != null) base.clickable(onClick = onClick) else base
     Card(shape = MaterialTheme.shapes.large, modifier = shaped) {
-        Column(Modifier.padding(18.dp), content = content)
+        Column(Modifier.padding(Spacing.card), content = content)
     }
 }
 
@@ -79,22 +116,22 @@ fun SectionHeader(text: String, modifier: Modifier = Modifier) {
         text,
         style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.primary,
-        modifier = modifier.padding(bottom = 8.dp)
+        modifier = modifier.padding(bottom = Spacing.sm)
     )
 }
 
 @Composable
 fun StatusPill(text: String, error: Boolean = false) {
     val container = if (error) MaterialTheme.colorScheme.errorContainer
-    else MaterialTheme.colorScheme.secondaryContainer
+    else MaterialTheme.colorScheme.primaryContainer
     val fg = if (error) MaterialTheme.colorScheme.onErrorContainer
-    else MaterialTheme.colorScheme.onSecondaryContainer
+    else MaterialTheme.colorScheme.onPrimaryContainer
     Surface(shape = CircleShape, color = container) {
         Text(
             text,
             style = MaterialTheme.typography.labelSmall,
             color = fg,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = Spacing.xs)
         )
     }
 }
@@ -114,7 +151,7 @@ fun SettingsRow(
             .clickable(onClick = onClick)
     ) {
         Row(
-            Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {

@@ -1,5 +1,6 @@
 package app.ytcutter.feature.downloads
 
+import app.ytcutter.core.designsystem.ScreenHeader
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -53,15 +54,11 @@ fun DownloadsScreen(
             .fillMaxSize()
             .padding(horizontal = 20.dp)
     ) {
-        Spacer(Modifier.height(20.dp))
-        Text("Unduhan", style = MaterialTheme.typography.headlineSmall)
-        Spacer(Modifier.height(4.dp))
-        Text(
-            "Hasil disimpan di galeri: Movies/YT Cutter (audio: Music/YT Cutter)",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        ScreenHeader(
+            title = "Unduhan",
+            subtitle = "Hasil disimpan di galeri: Movies/YT Cutter (audio: Music/YT Cutter)",
+            horizontalPadding = 0.dp
         )
-        Spacer(Modifier.height(16.dp))
 
         if (rows.isEmpty()) {
             EmptyDownloads()
@@ -96,7 +93,7 @@ private fun HistoryCard(
     onShare: () -> Unit
 ) {
     Card(shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp)) {
+        Column(Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -113,7 +110,7 @@ private fun HistoryCard(
                     )
                 }
                 Spacer(Modifier.width(10.dp))
-                StatusPill(row.status)
+                StatusPill(statusLabel(row.status), row.status == DownloadStatus.FAILED || row.status == DownloadStatus.INTERRUPTED)
             }
 
             when (row.status) {
@@ -184,31 +181,18 @@ private fun HistoryCard(
 }
 
 @Composable
-private fun StatusPill(status: DownloadStatus) {
-    val text = when (status) {
-        DownloadStatus.QUEUED -> "Antre"
-        DownloadStatus.RUNNING -> "Berjalan"
-        DownloadStatus.DONE -> "Selesai"
-        DownloadStatus.FAILED -> "Gagal"
-        DownloadStatus.CANCELED -> "Dibatalkan"
-        DownloadStatus.INTERRUPTED -> "Terputus"
-    }
-    val failed = status == DownloadStatus.FAILED || status == DownloadStatus.INTERRUPTED
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = if (failed) MaterialTheme.colorScheme.errorContainer
-            else MaterialTheme.colorScheme.primaryContainer
-        ),
-        shape = MaterialTheme.shapes.small
-    ) {
-        Text(
-            text,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (failed) MaterialTheme.colorScheme.onErrorContainer
-            else MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-        )
-    }
+private fun statusLabel(status: DownloadStatus): String = when (status) {
+    DownloadStatus.QUEUED -> "Antre"
+    DownloadStatus.RUNNING -> "Berjalan"
+    DownloadStatus.DONE -> "Selesai"
+    DownloadStatus.FAILED -> "Gagal"
+    DownloadStatus.CANCELED -> "Dibatalkan"
+    DownloadStatus.INTERRUPTED -> "Terputus"
+}
+
+@Composable
+private fun StatusPill(text: String, failed: Boolean) {
+    app.ytcutter.core.designsystem.StatusPill(text = text, error = failed)
 }
 
 @Composable

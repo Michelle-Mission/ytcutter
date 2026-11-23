@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.ytcutter.core.designsystem.ScreenScaffold
 import app.ytcutter.core.model.ComponentInfo
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
@@ -52,19 +53,7 @@ fun ComponentsScreen(
     val scope = rememberCoroutineScope()
     var status by remember { mutableStateOf<String?>(message) }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        topBar = {
-            TopAppBar(
-                title = { Text("Komponen") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
-                    }
-                }
-            )
-        }
-    ) { padding ->
+    ScreenScaffold(title = "Komponen", onBack = onBack) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -149,19 +138,7 @@ fun ComponentsScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(appVersion: String, onBack: () -> Unit) {
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        topBar = {
-            TopAppBar(
-                title = { Text("Tentang") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
-                    }
-                }
-            )
-        }
-    ) { padding ->
+    ScreenScaffold(title = "Tentang", onBack = onBack) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()

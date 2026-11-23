@@ -207,7 +207,7 @@ fun CookieScreen(onBack: () -> Unit) {
             if (entries.isEmpty()) {
                 Text(
                     "Belum ada cookie.",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
@@ -284,7 +284,7 @@ fun CookieScreen(onBack: () -> Unit) {
 private fun CookieEntryCard(row: CookieRow, onToggle: (Boolean) -> Unit, onOpen: () -> Unit) {
     Card(shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
         Row(
-            Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
