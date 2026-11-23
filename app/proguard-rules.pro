@@ -9,3 +9,6 @@
 -dontwarn org.schabi.newpipe.extractor.**
 -dontwarn javax.annotation.**
 -dontwarn org.jsoup.**
+-dontwarn java.beans.**
+-dontwarn javax.script.**
+-dontwarn org.mozilla.javascript.**
