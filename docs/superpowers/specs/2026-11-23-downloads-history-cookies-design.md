@@ -134,35 +134,52 @@ selalu kirim update saat status berubah.
   untuk kompatibilitas kartu di layar Home (dipetakan dari baris berjalan) atau dihapus bila tidak
   terpakai — builder memutuskan setelah melihat pemakaian.
 
-### 5. Cookie — perbaikan berdasarkan cara kerja YTDLnis
+### 5. Pengaturan berkategori + halaman Cookie (mengikuti YTDLnis)
 
-Temuan dari `deniscerri/ytdlnis` (dibaca lewat GitHub MCP):
+Pengaturan dipecah menjadi kategori dengan header: **Unduhan** (mesin yt-dlp + perbarui, log crash),
+**Cookie** (baris ringkas berisi status + jumlah, membuka halaman Cookie), **Tentang** (versi, lisensi).
+Kartu lama dipindah ke kategori yang sesuai; tidak ada fitur yang dihapus.
 
-- `CookieViewModel.getCookiesFromDB` membuka **database cookie WebView** langsung
-  (`app_webview/**/Cookies`, atau store incognito), query `host_key LIKE %youtube.com`, lalu menulis
-  Netscape dengan `host_key`, `path`, `is_secure`, `expires_utc` asli. Ini menangkap cookie
-  **HttpOnly** (SID/HSID/SSID) yang tidak dikembalikan `CookieManager.getCookie`.
-- `WebViewActivity` mengarahkan WebView ke `youtube.com/robots.txt` sebelum ekspor, `flush()` cookie,
-  dan bila hasil kosong menampilkan toast "no cookies found" tanpa menutup halaman.
+Kategori Cookie membuka layar penuh `CookieScreen` (pola sama dengan YTDLnis `CookiesFragment`):
 
-Rancangan untuk YT Cutter:
+- **Switch "Pakai cookie" di paling atas.** Mati = unduhan tidak mengirim `--cookies` dan tidak
+  memakai cookie di NewPipe. Default mati; otomatis menyala setelah ambil/impor berhasil.
+- **Tombol "+ Cookie"** di bawah switch (hanya aktif saat switch menyala; saat mati tombol
+  dinonaktifkan, sama seperti YTDLnis). Tombol membuka bottom sheet: isian **URL** (default
+  `https://`, tidak ada navigasi otomatis ke YouTube), isian deskripsi, lalu tombol
+  **Ambil cookie**.
+- **Ambil cookie** membuka `CookieWebViewActivity` ke URL yang diketik pengguna apa adanya
+  (tidak redirect paksa ke YouTube). Di dalamnya: tombol Selesai, status hidup "Cookie ada (N)";
+  saat Selesai: `flush()` → baca DB cookie WebView (`app_webview/**/Cookies`, termasuk HttpOnly)
+  → simpan sebagai satu entri cookie; bila kosong tampilkan toast dan tetap di halaman.
+- **Daftar entri cookie**: tiap baris menampilkan URL/deskripsi, switch aktif/nonaktif, dan isi
+  cookie bisa dilihat. Ketuk baris = ubah deskripsi/URL, ambil ulang, atau salin entri.
+  Hapus entri per baris. Entri aktif digabung menjadi `cookies.txt` (gabungan baris unik,
+  `#HttpOnly_` dipertahankan, 7 kolom) seperti `CookieRepository.buildCookie` YTDLnis.
+- **Menu titik tiga kanan atas**, persis permintaan:
+  1. **Hapus semua cookie** — konfirmasi dialog, hapus semua entri + kosongkan file.
+  2. **Impor dari papan klip** — baca teks papan klip; bila berisi format Netscape, tambah sebagai
+     entri baru berlabel "Impor dari papan klip <tanggal>".
+  3. **Ekspor ke papan klip** — salin seluruh isi cookie file (header + semua entri aktif).
+  4. **Ekspor berkas** — `ACTION_CREATE_DOCUMENT` (`cookies.txt`), tanpa izin storage.
+- Cookie tetap **opsional**; tidak wajib login. Alasan: YTDLnis menggerbang `--cookies` di balik
+  preferensi `use_cookies` (default `false`, `YTDLPUtil.kt`), dan itu hanya perlu untuk video
+  usia/privat/members-only atau saat muncul "Sign in to confirm you're not a bot".
 
-- `WebViewCookieReader.export(context): String?` — cari `Cookies` di bawah `dataDir/app_webview`,
-  salin ke cache (aman terhadap lock/WAL), buka read-only, ambil host `%youtube.com` dan
-  `%google.com`, tulis Netscape memakai path/secure/expiry asli. Kalau gagal/kosong, fallback ke
-  penangkapan header request yang sudah ada (tetap menyimpan HttpOnly).
-- `CookieLoginActivity`: judul "Ambil cookie", subjudul "Login, lalu tekan Selesai". Halaman awal
-  `https://m.youtube.com/`; setelah `onPageFinished`, ekspor DB dibaca **hanya untuk status hidup**
-  ("Cookie ada (N)" / "Belum ada cookie — login dulu") tanpa menyimpan. Penyimpanan hanya saat
-  Selesai/back: `flush()` → ekspor → simpan; bila kosong, tampilkan toast "Belum ada cookie ditemukan"
-  dan tetap di halaman. Bila tersimpan, `Toast` "Cookie tersimpan (N cookie)" + hasil probe.
-- `CookieCheck.probe(context)`: GET `https://www.youtube.com/feed/subscriptions` dengan header
-  `Cookie` dan `followRedirects=true` (maks. 3 lompatan); URL akhir di host `accounts.google.com`
-  → `NotLoggedIn`; host `youtube.com` → `LoggedIn`; lainnya/exception/5xx → `Unknown`. Dipakai otomatis
-  setelah simpan dan oleh tombol **Cek cookie** di Settings; hasil jadi toast.
-- Teks Settings: tombol "Ambil cookie"; baris status "Cookie ada — login YouTube aktif" /
-  "Cookie ada, tapi belum login — coba ambil ulang" / "Belum ada cookie." Dihitung dari
-  `CookieStore` + hasil probe terakhir (disimpan di SharedPreferences kecil, bukan cookie file).
+`CookieCheck.probe(context)`: GET `https://www.youtube.com/feed/subscriptions` dengan header
+`Cookie` gabungan entri aktif, `followRedirects=true` (maks. 3); URL akhir host
+`accounts.google.com` → `NotLoggedIn`, host `youtube.com` → `LoggedIn`, lainnya/5xx → `Unknown`.
+Tombol **Cek cookie** di halaman Cookie menjalankan probe dan menampilkan hasil sebagai toast;
+probe juga jalan otomatis setelah simpan.
+
+Penyimpanan: tabel `cookies` di DB yang sama — `id`, `url`, `description`, `content`,
+`enabled`, `created_at`. `CookiesRepo` menyediakan list Flow, insert/update/delete, toggle,
+`deleteAll`, `rebuildFile(context)` (tulis `filesDir/cookies.txt` dari entri aktif) dan
+`buildCookieText()`. Setiap perubahan memicu `rebuildFile`. `CookieStore` lama dipensiunkan/
+dibungkus agar tidak ada dua sumber kebenaran.
+
+Bukan bagian dari 0.3.0: profil incognito WebView, gesture swipe-to-delete, dan login PO token
+YTDLnis — hanya relevan untuk kasus khusus dan menambah kerumitan.
 
 ### 6. Versi
 
@@ -172,7 +189,9 @@ Rancangan untuk YT Cutter:
 
 Tes unit murni (JUnit, tanpa device):
 - `ProgressLineTest` — byte-based persen, `N/A`, fallback `[download]`, baris sampah.
-- `CookieExportTest` — domain/path/secure/expiry di Netscape, host tanpa titik jadi `.host`.
+- `CookieFileBuilderTest` — gabungan entri: baris unik, `#HttpOnly_` dipertahankan, 7 kolom,
+  nilai kosong tetap valid, header Netscape.
+- `CookieImportTest` — teks papan klip valid/tidak valid → entri atau null.
 - `CookieCheckTest` — `classify(finalUrl, httpCode)` untuk host youtube/accounts/consent/unknown.
 - `HistoryRowMappingTest` — baris DB → model UI, termasuk status tak dikenal.
 DB/Worker tidak diuji di CI (tanpa emulator); diverifikasi lewat build + review.
