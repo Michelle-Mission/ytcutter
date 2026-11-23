@@ -1,15 +1,14 @@
 package app.ytcutter.ui
 
-import android.annotation.SuppressLint
-import android.os.Build
+import android.content.Intent
 import android.os.Bundle
 import android.webkit.CookieManager
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,7 +24,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -36,27 +34,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import app.ytcutter.core.CookieExport
-import app.ytcutter.core.CookieRecord
-import app.ytcutter.data.CookieStore
+import app.ytcutter.data.cookies.CookiePrefs
+import app.ytcutter.data.cookies.CookiesRepo
+import app.ytcutter.data.cookies.WebViewCookieReader
 import app.ytcutter.ui.theme.YtCutterTheme
 
 class CookieLoginActivity : ComponentActivity() {
 
-    private val captured = LinkedHashMap<String, CookieRecord>()
     private var webView: WebView? = null
-    private var cookieCount by mutableIntStateOf(0)
     private var saving by mutableStateOf(false)
+    private var cookieCount by mutableIntStateOf(0)
+    private var statusText by mutableStateOf("Belum ada cookie — login dulu")
+    private var targetUrl by mutableStateOf("https://m.youtube.com/")
+    private var description by mutableStateOf("")
 
-    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                saveAndFinish()
-            }
-        })
+        targetUrl = intent.getStringExtra(EXTRA_URL)?.takeIf { it.isNotBlank() } ?: targetUrl
+        description = intent.getStringExtra(EXTRA_DESCRIPTION).orEmpty()
 
         setContent {
             YtCutterTheme {
@@ -75,21 +70,18 @@ class CookieLoginActivity : ComponentActivity() {
                                 )
                             }
                             Column(Modifier.weight(1f)) {
-                                Text("Login YouTube", style = MaterialTheme.typography.titleMedium)
+                                Text("Ambil cookie", style = MaterialTheme.typography.titleMedium)
                                 Text(
-                                    "Login, lalu tutup halaman ini",
+                                    "Login di halaman ini, lalu tekan Selesai",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            TextButton(
-                                onClick = { saveAndFinish() },
-                                enabled = !saving
-                            ) { Text(if (saving) "Menyimpan…" else "Selesai") }
+                            TextButton(onClick = { saveAndFinish() }, enabled = !saving) {
+                                Text(if (saving) "Menyimpan..." else "Selesai")
+                            }
                         }
-                        if (saving) {
-                            LinearProgressIndicator(Modifier.fillMaxWidth())
-                        }
+                        if (saving) LinearProgressIndicator(Modifier.fillMaxWidth())
                         AndroidView(
                             modifier = Modifier.weight(1f),
                             factory = { context ->
@@ -98,7 +90,6 @@ class CookieLoginActivity : ComponentActivity() {
                                     settings.javaScriptEnabled = true
                                     settings.domStorageEnabled = true
                                     settings.databaseEnabled = true
-                                    settings.userAgentString = spoofedUserAgent()
                                     CookieManager.getInstance().setAcceptCookie(true)
                                     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
                                     webViewClient = object : WebViewClient() {
@@ -109,16 +100,24 @@ class CookieLoginActivity : ComponentActivity() {
                                             captureHeaders(request)
                                             return null
                                         }
+
+                                        override fun onPageFinished(view: WebView?, url: String?) {
+                                            super.onPageFinished(view, url)
+                                            statusText = if (cookieCount > 0) {
+                                                "Cookie ada ($cookieCount) · tekan Selesai untuk menyimpan"
+                                            } else {
+                                                "Belum ada cookie — login dulu"
+                                            }
+                                        }
                                     }
-                                    loadUrl("https://m.youtube.com/")
+                                    loadUrl(targetUrl)
                                 }
                             }
                         )
                         Text(
                             when {
-                                saving -> "Menyimpan cookies…"
-                                cookieCount > 0 -> "$cookieCount cookies tertangkap · tutup untuk menyimpan"
-                                else -> "Belum ada cookies — login dulu"
+                                saving -> "Menyimpan cookie..."
+                                else -> statusText
                             },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -135,15 +134,9 @@ class CookieLoginActivity : ComponentActivity() {
 
     private fun captureHeaders(request: WebResourceRequest) {
         val host = request.url.host ?: return
+        if (!host.endsWith("youtube.com") && !host.endsWith("google.com")) return
         val header = request.requestHeaders?.get("Cookie") ?: return
-        val domain = when {
-            host.endsWith("youtube.com") -> ".youtube.com"
-            host.endsWith("google.com") -> ".google.com"
-            else -> return
-        }
-        CookieExport.fromCookieHeader(header, domain, expiry())
-            .forEach { captured["${it.domain}|${it.name}"] = it }
-        cookieCount = captured.count { it.key.startsWith(".youtube.com") }
+        cookieCount = header.split(';').count { it.contains('=') }
     }
 
     private fun saveAndFinish() {
@@ -151,26 +144,25 @@ class CookieLoginActivity : ComponentActivity() {
         saving = true
         val manager = CookieManager.getInstance()
         manager.flush()
-        listOf(
-            ".youtube.com" to "https://www.youtube.com",
-            ".google.com" to "https://accounts.google.com"
-        ).forEach { (domain, url) ->
-            manager.getCookie(url)?.let { header ->
-                CookieExport.fromCookieHeader(header, domain, expiry())
-                    .forEach { captured["${it.domain}|${it.name}"] = it }
-            }
+        val content = WebViewCookieReader.export(this)
+        if (content == null) {
+            saving = false
+            Toast.makeText(this, "Belum ada cookie ditemukan", Toast.LENGTH_LONG).show()
+            return
         }
-        if (captured.isNotEmpty()) {
-            CookieStore.saveText(this, CookieExport.toNetscape(captured.values))
-            setResult(RESULT_OK)
-        }
+        val repo = CookiesRepo.get(this)
+        val count = content.lines().count { it.isNotBlank() && !it.startsWith("# Netscape") }
+        repo.insert(targetUrl, description.ifBlank { targetUrl }, content)
+        CookiePrefs.setUseCookies(this, true)
+        setResult(RESULT_OK, Intent().putExtra(EXTRA_RESULT_COUNT, count))
+        Toast.makeText(this, "Cookie tersimpan ($count cookie)", Toast.LENGTH_SHORT).show()
         webView?.stopLoading()
         finish()
     }
 
-    private fun expiry(): Long = System.currentTimeMillis() / 1000 + 365L * 24 * 3600
-
-    private fun spoofedUserAgent(): String =
-        "Mozilla/5.0 (Linux; Android ${Build.VERSION.RELEASE}; ${Build.MODEL}) " +
-            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+    companion object {
+        const val EXTRA_URL = "url"
+        const val EXTRA_DESCRIPTION = "description"
+        const val EXTRA_RESULT_COUNT = "count"
+    }
 }
