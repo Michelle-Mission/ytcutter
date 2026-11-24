@@ -19,15 +19,10 @@ class UpdatePrefs(context: Context) {
         get() = prefs.getString(KEY_IGNORED, null)
         set(value) = prefs.edit().putString(KEY_IGNORED, value).apply()
 
-    var dismissedAnnouncement: String?
-        get() = prefs.getString(KEY_ANNOUNCEMENT, null)
-        set(value) = prefs.edit().putString(KEY_ANNOUNCEMENT, value).apply()
-
     companion object {
         private const val PREFS = "updates"
         private const val KEY_LAST_CHECK = "last_check_ms"
         private const val KEY_LATEST = "latest_version"
         private const val KEY_IGNORED = "ignored_version"
-        private const val KEY_ANNOUNCEMENT = "dismissed_announcement"
     }
 }

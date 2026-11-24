@@ -12,36 +12,27 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.ytcutter.core.designsystem.ScreenScaffold
 import app.ytcutter.core.designsystem.SectionHeader
 import app.ytcutter.core.designsystem.Spacing
-import app.ytcutter.core.model.ChangeEntry
 
-private val fallbackChanges = listOf(
+private data class ChangeEntry(val label: String, val items: List<String>)
+
+private val changes = listOf(
     ChangeEntry(
         "1.0.0",
         listOf(
             "Rilis pertama YT Cutter.",
             "Potong dan unduh video YouTube tanpa mengunduh bagian yang tidak dipakai.",
-            "Update delta: unduhan kecil, APK penuh hanya sebagai cadangan.",
-            "Konfigurasi jarak jauh: pengumuman, maintenance, dan feature flag dari GitHub Pages.",
-            "Changelog, status komponen, dan pemeriksaan pembaruan di dalam aplikasi.",
+            "Status komponen dan pemeriksaan pembaruan di dalam aplikasi.",
             "Dukungan cookie YouTube untuk video yang butuh login."
         )
     )
 )
 @Composable
-fun ChangelogScreen(
-    remoteEntries: suspend () -> List<ChangeEntry>? = { null },
-    onBack: () -> Unit
-) {
-    val changes by produceState(fallbackChanges, remoteEntries) {
-        value = remoteEntries() ?: fallbackChanges
-    }
+fun ChangelogScreen(onBack: () -> Unit) {
     ScreenScaffold(title = "Changelog", onBack = onBack) { padding ->
         Column(
             modifier = Modifier

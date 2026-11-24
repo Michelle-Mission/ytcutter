@@ -80,7 +80,6 @@ import app.ytcutter.core.database.HistoryRepo
 import app.ytcutter.core.designsystem.AuroraBackdrop
 import app.ytcutter.core.designsystem.theme.YtCutterTheme
 import app.ytcutter.core.model.Action
-import app.ytcutter.core.model.AppConfig
 import app.ytcutter.core.model.AppUpdate
 import app.ytcutter.core.model.ComponentInfo
 import app.ytcutter.core.model.DownloadRequest
@@ -128,12 +127,6 @@ private fun AppRoot() {
     val crashText = remember { CrashLog.last(context.applicationContext) }
     var showCrash by remember { mutableStateOf(crashText != null) }
 
-    val remoteConfig = AppGraph.remoteConfig(context)
-    var config by remember { mutableStateOf(AppConfig.DEFAULT) }
-    LaunchedEffect(Unit) {
-        config = remoteConfig.config()
-    }
-
     LaunchedEffect(Unit) {
         CrashLog.markBooting(context.applicationContext)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -145,21 +138,7 @@ private fun AppRoot() {
     }
 
     when (val state = engine) {
-        EngineState.Ready, EngineState.Starting -> when {
-            config.maintenance.enabled -> MaintenanceScreen(
-                message = config.maintenance.message,
-                onRetry = { scope.launch { config = remoteConfig.config() } }
-            )
-            AppUpdater(context).installedVersionCode() < config.minVersionCode -> ForceUpdateScreen(
-                onOpen = {
-                    openUrl(
-                        context,
-                        "https://github.com/${AppUpdater.OWNER}/${AppUpdater.REPO}/releases/latest"
-                    )
-                }
-            )
-            else -> AppNavHost(config)
-        }
+        EngineState.Ready, EngineState.Starting -> AppNavHost()
         is EngineState.Failed -> BootScreen(
             error = state.message,
             crash = state.detail ?: crashText,
@@ -182,7 +161,7 @@ private fun AppRoot() {
 }
 
 @Composable
-private fun AppNavHost(config: AppConfig) {
+private fun AppNavHost() {
     val context = LocalContext.current
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -236,7 +215,6 @@ private fun AppNavHost(config: AppConfig) {
             if (showBar) {
                 AppBottomBar(
                     currentRoute = currentRoute,
-                    showDownloads = config.features.downloader,
                     onNavigate = { route ->
                         navController.navigate(route) {
                             popUpTo(Route.Home.path) { saveState = true }
@@ -254,7 +232,7 @@ private fun AppNavHost(config: AppConfig) {
             modifier = Modifier.padding(padding)
         ) {
             composable(Route.Home.path) {
-                HomeRoute(navController, config)
+                HomeRoute(navController)
             }
             composable(Route.Downloads.path) {
                 DownloadsRoute(navController)
@@ -274,7 +252,7 @@ private fun AppNavHost(config: AppConfig) {
                     onOpenComponents = { navController.navigate(Route.Components.path) },
                     onOpenAbout = { navController.navigate(Route.About.path) },
                     onOpenChangelog = { navController.navigate(Route.Changelog.path) },
-                    updateSize = update?.let { u -> u.patch?.asset?.size ?: u.apk.size },
+                    updateSize = update?.apk?.size,
                     updateStatus = updateStatus,
                     updateProgress = updateProgress,
                     updateBusy = updateBusy
@@ -284,10 +262,7 @@ private fun AppNavHost(config: AppConfig) {
                 ComponentsRoute(navController)
             }
             composable(Route.Changelog.path) {
-                ChangelogScreen(
-                    remoteEntries = { AppGraph.remoteConfig(context).changelog() },
-                    onBack = { navController.popBackStack() }
-                )
+                ChangelogScreen(onBack = { navController.popBackStack() })
             }
             composable(Route.About.path) {
                 AboutScreen(
@@ -311,7 +286,7 @@ private fun AppNavHost(config: AppConfig) {
 }
 
 @Composable
-private fun HomeRoute(navController: NavHostController, config: AppConfig) {
+private fun HomeRoute(navController: NavHostController) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var homeState by remember { mutableStateOf<HomeState>(HomeState.Idle) }
@@ -319,16 +294,8 @@ private fun HomeRoute(navController: NavHostController, config: AppConfig) {
 
     LaunchedEffect(Unit) { PoToken.warmUp(context) }
 
-    val prefs = remember { AppGraph.updatePrefs(context) }
-    val announcement = config.announcement
-        ?.takeIf { it.id != prefs.dismissedAnnouncement }
-
     HomeScreen(
         state = homeState,
-        announcement = announcement,
-        onDismissAnnouncement = {
-            announcement?.let { prefs.dismissedAnnouncement = it.id }
-        },
         onSubmit = { url ->
             if (!UrlValidator.isYouTube(url)) {
                 homeState = HomeState.Error("Bukan URL YouTube. Tempel tautan video.")
@@ -378,8 +345,7 @@ private fun HomeRoute(navController: NavHostController, config: AppConfig) {
                 }
             }
         },
-        onChooseFormat = { showFormat = true },
-        onOpenAnnouncement = { openUrl(context, it) }
+        onChooseFormat = { showFormat = true }
     )
 
     if (showFormat) {
@@ -390,21 +356,17 @@ private fun HomeRoute(navController: NavHostController, config: AppConfig) {
                 onDismiss = { showFormat = false },
                 onStart = { quality, start, end ->
                     showFormat = false
-                    if (!config.features.downloader) {
-                        homeState = HomeState.Error("Fitur unduhan sedang dinonaktifkan sementara.")
-                    } else {
-                        val started = Downloads.enqueue(
-                            context,
-                            DownloadRequest(loaded.url, quality, start, end, loaded.infoJson),
-                            loaded.info.title
+                    val started = Downloads.enqueue(
+                        context,
+                        DownloadRequest(loaded.url, quality, start, end, loaded.infoJson),
+                        loaded.info.title
+                    )
+                    if (!started) {
+                        homeState = HomeState.Error(
+                            "Masih ada unduhan berjalan. Tunggu atau batalkan dulu."
                         )
-                        if (!started) {
-                            homeState = HomeState.Error(
-                                "Masih ada unduhan berjalan. Tunggu atau batalkan dulu."
-                            )
-                        } else {
-                            navController.navigate(Route.Downloads.path)
-                        }
+                    } else {
+                        navController.navigate(Route.Downloads.path)
                     }
                 }
             )
@@ -510,7 +472,7 @@ private fun ComponentsRoute(navController: NavHostController) {
 
     LaunchedEffect(Unit) {
         busy = true
-        components = AppGraph.componentRepository(context).components() + configStatus(context)
+        components = AppGraph.componentRepository(context).components()
         releaseUrl = AppGraph.componentRepository(context).latestRelease()?.url
         busy = false
     }
@@ -523,7 +485,7 @@ private fun ComponentsRoute(navController: NavHostController) {
             busy = true
             val list = AppGraph.componentRepository(context).components()
             val release = AppGraph.componentRepository(context).latestRelease()
-            components = list + configStatus(context)
+            components = list
             releaseUrl = release?.url
             busy = false
             if (release == null) "Tidak ada pembaruan tersedia" else "Versi ${release.version} tersedia"
@@ -544,63 +506,14 @@ private fun ComponentsRoute(navController: NavHostController) {
 }
 
 @Composable
-private fun MaintenanceScreen(message: String, onRetry: () -> Unit) {
-    Surface(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(28.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("Sedang maintenance", style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(10.dp))
-            Text(
-                message.ifBlank { "Layanan sedang diperbaiki. Coba lagi beberapa saat lagi." },
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(18.dp))
-            Button(onClick = onRetry) { Text("Coba lagi") }
-        }
-    }
-}
-
-@Composable
-private fun ForceUpdateScreen(onOpen: () -> Unit) {
-    Surface(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(28.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("Versi ini tidak didukung lagi", style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(10.dp))
-            Text(
-                "Pasang versi terbaru YT Cutter untuk melanjutkan.",
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(18.dp))
-            Button(onClick = onOpen) { Text("Buka halaman rilis") }
-        }
-    }
-}
-
-@Composable
 private fun AppBottomBar(
     currentRoute: String?,
-    showDownloads: Boolean,
     onNavigate: (String) -> Unit
 ) {
     NavigationBar {
         val items = buildList {
             add(Triple(Route.Home, Icons.Default.Home, "Beranda"))
-            if (showDownloads) add(Triple(Route.Downloads, Icons.Default.Download, "Unduhan"))
+            add(Triple(Route.Downloads, Icons.Default.Download, "Unduhan"))
             add(Triple(Route.Settings, Icons.Default.Settings, "Pengaturan"))
         }
         items.forEach { (route, icon, label) ->
@@ -612,22 +525,6 @@ private fun AppBottomBar(
             )
         }
     }
-}
-
-private fun configStatus(context: android.content.Context): ComponentInfo {
-    val repo = AppGraph.remoteConfig(context)
-    val whenText = if (repo.lastSyncMs > 0L) {
-        java.text.SimpleDateFormat("dd/MM HH:mm", java.util.Locale.getDefault())
-            .format(java.util.Date(repo.lastSyncMs))
-    } else {
-        "belum pernah"
-    }
-    return ComponentInfo(
-        name = "Konfigurasi",
-        version = repo.statusText(),
-        updatable = false,
-        note = "Sinkron terakhir: $whenText"
-    )
 }
 
 private fun openUrl(context: android.content.Context, url: String) {

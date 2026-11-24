@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YT Cutter — potong video YouTube tanpa unduh penuh</title>
+<meta name="description" content="Unduh YT Cutter: potong dan unduh bagian video YouTube yang dipakai saja. Ringan, tanpa iklan, sumber terbuka.">
+<style>
+  :root{
+    --bg:#08090c;
+    --surface:#111318;
+    --line:#22252e;
+    --text:#f2f4f8;
+    --muted:#9aa1ae;
+    --accent:#9ef01a;
+    --accent-ink:#0b1200;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(900px 500px at 85% -10%, rgba(158,240,26,.16), transparent 60%),
+      radial-gradient(700px 420px at -10% 10%, rgba(38,198,255,.10), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font:16px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit}
+  .wrap{max-width:980px;margin:0 auto;padding:0 24px}
+  header{padding:26px 0;display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.2px}
+  .dot{width:26px;height:26px;border-radius:9px;background:var(--accent);display:inline-block;
+       box-shadow:0 0 24px rgba(158,240,26,.35)}
+  nav a{color:var(--muted);text-decoration:none;margin-left:18px;font-size:14px}
+  nav a:hover{color:var(--text)}
+  .hero{padding:56px 0 40px;display:grid;grid-template-columns:1.15fr .85fr;gap:44px;align-items:center}
+  h1{font-size:clamp(34px,5vw,56px);line-height:1.05;margin:0 0 18px;letter-spacing:-.02em}
+  h1 em{font-style:normal;color:var(--accent)}
+  .sub{color:var(--muted);font-size:17px;max-width:44ch;margin:0 0 28px}
+  .cta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .btn{display:inline-flex;flex-direction:column;gap:2px;text-decoration:none;border-radius:14px;
+       padding:14px 20px;font-weight:700;border:1px solid transparent}
+  .btn small{font-weight:500;font-size:12px;opacity:.7}
+  .btn-primary{background:var(--accent);color:var(--accent-ink)}
+  .btn-primary:hover{filter:brightness(1.06)}
+  .btn-ghost{border-color:var(--line);color:var(--text);background:rgba(255,255,255,.02)}
+  .btn-ghost:hover{border-color:#3a3f4c}
+  .meta{margin-top:14px;color:var(--muted);font-size:13px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+        word-break:break-all}
+  .phone{
+    background:linear-gradient(180deg,#15181f,#0c0e12);border:1px solid var(--line);border-radius:26px;
+    padding:18px;box-shadow:0 30px 80px rgba(0,0,0,.5)
+  }
+  .screen{background:#0a0c10;border:1px solid #1b1e26;border-radius:16px;padding:18px}
+  .bar{height:6px;width:42%;border-radius:99px;background:#2a2f3a;margin-bottom:16px}
+  .field{height:46px;border-radius:12px;border:1px solid #242934;display:flex;align-items:center;
+         padding:0 14px;color:#5c6472;font-size:13px;margin-bottom:12px}
+  .chip{display:inline-block;font-size:11px;padding:4px 10px;border-radius:99px;
+        border:1px solid #2b3140;color:#a8b0bf;margin:0 6px 8px 0}
+  .row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #191d25;font-size:13px}
+  .row:last-child{border-bottom:0}
+  .row span:last-child{color:var(--muted)}
+  section{padding:34px 0;border-top:1px solid var(--line)}
+  h2{font-size:22px;margin:0 0 18px;letter-spacing:-.01em}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px}
+  .card h3{margin:0 0 6px;font-size:15px}
+  .card p{margin:0;color:var(--muted);font-size:13px}
+  ol{padding-left:20px;color:var(--muted);font-size:14px}
+  ol li{margin:8px 0}
+  ol b{color:var(--text);font-weight:600}
+  pre,.logs{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;
+       white-space:pre-wrap;font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:#c9d1e0;margin:0}
+  .notes{color:var(--muted);font-size:14px}
+  footer{padding:30px 0 60px;color:#6b7280;font-size:12px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  footer a{color:#9aa1ae;text-decoration:none}
+  @media (max-width:820px){
+    .hero{grid-template-columns:1fr;padding-top:34px}
+    .grid{grid-template-columns:1fr}
+    nav{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="dot"></span> YT Cutter</div>
+    <nav>
+      <a href="#unduh">Unduh</a>
+      <a href="#pasang">Cara pasang</a>
+      <a href="#catatan">Catatan rilis</a>
+      <a href="https://github.com/nurfilardi/ytcutter">GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div>
+        <h1>Potong video YouTube <em>sebelum</em> diunduh.</h1>
+        <p class="sub">Pilih bagian video, unduh hanya potongan yang dipakai. Tanpa iklan, tanpa akun, sumber terbuka.</p>
+        <div class="cta">
+          <a id="download" class="btn btn-primary" href="https://github.com/nurfilardi/ytcutter/releases/latest">
+            Unduh APK
+            <small id="download-sub">versi terbaru</small>
+          </a>
+          <a class="btn btn-ghost" href="#pasang">Cara pasang<small>Android 8+</small></a>
+        </div>
+        <div class="meta" id="meta">memuat info rilis…</div>
+      </div>
+      <div class="phone" aria-hidden="true">
+        <div class="screen">
+          <div class="bar"></div>
+          <div class="field">Tempel tautan YouTube…</div>
+          <div>
+            <span class="chip">1080p</span><span class="chip">720p</span><span class="chip">MP3</span>
+          </div>
+          <div style="height:10px"></div>
+          <div class="row"><span>Potong bagian</span><span>00:12 – 03:40</span></div>
+          <div class="row"><span>Perkiraan unduhan</span><span>18 MB</span></div>
+          <div class="row"><span>Kualitas</span><span>1080p · H.264</span></div>
+        </div>
+      </div>
+    </div>
+
+    <section>
+      <h2>Kenapa YT Cutter</h2>
+      <div class="grid">
+        <div class="card"><h3>Hemat kuota</h3><p>Ambil potongan yang kamu butuhkan, bukan seluruh video.</p></div>
+        <div class="card"><h3>Tanpa iklan</h3><p>Tidak ada iklan, langganan, atau pelacakan. Gratis sepenuhnya.</p></div>
+        <div class="card"><h3>Sumber terbuka</h3><p>Kode tersedia di GitHub. Periksa sendiri sebelum memasang.</p></div>
+      </div>
+    </section>
+
+    <section id="pasang">
+      <h2>Cara pasang</h2>
+      <ol>
+        <li>Ketuk <b>Unduh APK</b> di atas dan tunggu berkas selesai diunduh.</li>
+        <li>Buka berkasnya. Jika muncul peringatan, pilih <b>Tetap pasang</b> — wajar untuk aplikasi di luar Play Store.</li>
+        <li>Izinkan <b>pasang dari sumber ini</b> bila Android meminta.</li>
+        <li>Buka YT Cutter, tempel tautan video, pilih bagian, lalu unduh.</li>
+      </ol>
+      <p class="notes">Pembaruan: aplikasi memeriksa versi baru dan memasang APK penuh yang ditandatangani dengan kunci yang sama. Tidak ada patch atau konfigurasi jarak jauh.</p>
+    </section>
+
+    <section id="catatan">
+      <h2>Catatan rilis</h2>
+      <div class="notes" id="release-notes">Memuat…</div>
+      <p style="margin-top:18px"><a class="btn btn-ghost" href="https://github.com/nurfilardi/ytcutter/releases">Semua rilis</a></p>
+    </section>
+  </main>
+
+  <footer>
+    <div>YT Cutter · dibuat untuk Android</div>
+    <div><a href="https://github.com/nurfilardi/ytcutter">github.com/nurfilardi/ytcutter</a></div>
+  </footer>
+</div>
+<script>
+(async () => {
+  const api = "https://api.github.com/repos/nurfilardi/ytcutter/releases/latest";
+  const $ = (id) => document.getElementById(id);
+  try {
+    const res = await fetch(api, { headers: { Accept: "application/vnd.github+json" } });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const rel = await res.json();
+    const apk = (rel.assets || []).find((a) => a.name.endsWith(".apk"));
+    const mb = (n) => (n / 1048576).toFixed(1) + " MB";
+    if (apk) {
+      $("download").href = apk.browser_download_url;
+      $("download-sub").textContent = rel.tag_name + " · " + mb(apk.size);
+      $("meta").textContent = apk.name + " · " + mb(apk.size) + " · diunggah " +
+        new Date(apk.updated_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+    } else {
+      $("download-sub").textContent = rel.tag_name;
+      $("meta").textContent = "APK tidak ditemukan di rilis terbaru.";
+    }
+    $("release-notes").textContent = (rel.body || "Belum ada catatan.").trim();
+  } catch (e) {
+    $("meta").textContent = "Gagal memuat info rilis. Tombol unduh tetap mengarah ke rilis terbaru.";
+    $("release-notes").textContent = "Buka halaman rilis di GitHub untuk catatan terbaru.";
+  }
+})();
+</script>
+</body>
+</html>
