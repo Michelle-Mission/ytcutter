@@ -47,13 +47,12 @@ jobs:
           echo "code=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)" >> "$GITHUB_OUTPUT"
 
       - name: Build
-        run: gradle --no-daemon testDebugUnitTest assembleRelease :components:assembleRelease
+        run: gradle --no-daemon testDebugUnitTest assembleRelease
 
       - name: Release asset
         if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
         run: |
           cp app/build/outputs/apk/release/app-release.apk "YT-Cutter-${{ steps.ver.outputs.name }}.apk"
-          cp components/build/outputs/apk/release/components-release.apk "YT-Cutter-Components.apk"
 
       - name: Previous build
         id: prev

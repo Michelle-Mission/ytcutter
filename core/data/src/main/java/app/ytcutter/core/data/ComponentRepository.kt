@@ -4,7 +4,6 @@ import android.content.Context
 import app.ytcutter.core.model.ComponentInfo
 import app.ytcutter.core.model.ReleaseInfo
 import app.ytcutter.core.data.update.AppUpdater
-import app.ytcutter.core.data.engine.Engine
 
 class ComponentRepository(
     private val context: Context,
@@ -13,7 +12,6 @@ class ComponentRepository(
 
     suspend fun components(): List<ComponentInfo> {
         val ytDlp = runCatching { YtDlpRepo.versionName(context) }.getOrNull()
-        val helper = runCatching { Engine.helperVersion(context) }.getOrNull()
         val app = runCatching { AppUpdater(context).check() }.getOrNull()
         return listOf(
             ComponentInfo(
@@ -31,17 +29,6 @@ class ComponentRepository(
                 version = ytDlp ?: "belum siap",
                 updatable = true,
                 note = "Diperbarui dari rilis resmi yt-dlp"
-            ),
-            ComponentInfo(
-                name = "Paket komponen",
-                version = helper ?: "belum dipasang",
-                updatable = true,
-                note = if (helper != null) {
-                    "FFmpeg, Python, dan aria2c aktif dari paket terpisah"
-                } else {
-                    "Pasang YT-Cutter-Components.apk dari halaman rilis agar FFmpeg, " +
-                        "Python, dan aria2c bisa diperbarui tanpa memasang ulang aplikasi"
-                }
             )
         )
     }

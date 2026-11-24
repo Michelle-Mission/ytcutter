@@ -8,12 +8,11 @@ import java.util.concurrent.TimeUnit
 import java.util.zip.ZipInputStream
 
 /**
- * Menjalankan yt-dlp dengan komponen (python, ffmpeg, aria2c) dari APK helper
- * terpisah seperti YTDLnis, dengan cadangan biner bawaan APK bila helper absen.
+ * Menjalankan yt-dlp dengan komponen (python, ffmpeg, aria2c) yang ikut di APK,
+ * memakai interpreter dari nativeLibraryDir agar lolos batasan exec Android 10+.
  */
 object Engine {
 
-    const val HELPER_PACKAGE = "app.ytcutter.components"
     private const val BASE = "youtubedl-android"
 
     data class Layout(
@@ -23,8 +22,7 @@ object Engine {
         val aria2Bin: File?,
         val cert: File?,
         val script: File,
-        val binDir: File,
-        val helperVersion: String?
+        val binDir: File
     )
 
     private val processes = Collections.synchronizedMap(HashMap<String, Process>())
@@ -32,31 +30,24 @@ object Engine {
     @Volatile
     private var layout: Layout? = null
 
-    fun helperVersion(context: Context): String? = runCatching {
-        @Suppress("DEPRECATION")
-        context.packageManager.getPackageInfo(HELPER_PACKAGE, 0).versionName
-    }.getOrNull()
-
     fun prepare(context: Context): Layout {
         layout?.let { return it }
         val app = context.applicationContext
         val bundledDir = File(app.applicationInfo.nativeLibraryDir)
-        val helperDir = helperNativeDir(app) ?: bundledDir
         val root = File(app.noBackupFilesDir, "engine").apply { mkdirs() }
-        val pythonHome = unpack(File(helperDir, "libpython.zip.so"), File(root, "python"))
-        val ffmpegHome = unpack(File(helperDir, "libffmpeg.zip.so"), File(root, "ffmpeg"))
-        val aria2Home = unpack(File(helperDir, "libaria2c.zip.so"), File(root, "aria2c"))
+        val pythonHome = unpack(File(bundledDir, "libpython.zip.so"), File(root, "python"))
+        val ffmpegHome = unpack(File(bundledDir, "libffmpeg.zip.so"), File(root, "ffmpeg"))
+        val aria2Home = unpack(File(bundledDir, "libaria2c.zip.so"), File(root, "aria2c"))
         val cert = File(pythonHome, "usr/etc/tls/cert.pem").takeIf { it.isFile }
         val script = File(File(app.noBackupFilesDir, "$BASE/yt-dlp"), "yt-dlp")
         val result = Layout(
-            pythonBin = File(helperDir, "libpython.so"),
+            pythonBin = File(bundledDir, "libpython.so"),
             pythonHome = pythonHome,
-            ffmpegBin = File(helperDir, "libffmpeg.so"),
-            aria2Bin = File(helperDir, "libaria2c.so").takeIf { it.isFile },
+            ffmpegBin = File(bundledDir, "libffmpeg.so"),
+            aria2Bin = File(bundledDir, "libaria2c.so").takeIf { it.isFile },
             cert = cert,
             script = script,
-            binDir = helperDir,
-            helperVersion = helperVersion(app)
+            binDir = bundledDir
         )
         layout = result
         return result
@@ -66,48 +57,6 @@ object Engine {
         layout = null
     }
 
-    private fun helperNativeDir(context: Context): File? = runCatching {
-        val info = if (android.os.Build.VERSION.SDK_INT >= 33) {
-            context.packageManager.getPackageInfo(
-                HELPER_PACKAGE,
-                android.content.pm.PackageManager.PackageInfoFlags.of(0)
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            context.packageManager.getPackageInfo(HELPER_PACKAGE, 0)
-        }
-        File(info.applicationInfo!!.nativeLibraryDir)
-    }.getOrNull()
-
-    private fun unpack(zip: File, dest: File): File {
-        if (!zip.isFile) return dest
-        val marker = File(dest, ".version")
-        val stamp = "${zip.length()}"
-        if (marker.isFile && marker.readText() == stamp) return dest
-        dest.deleteRecursively()
-        dest.mkdirs()
-        runCatching {
-            ZipInputStream(zip.inputStream().buffered()).use { input ->
-                var entry = input.nextEntry
-                while (entry != null) {
-                    val target = File(dest, entry.name)
-                    if (!target.canonicalPath.startsWith(dest.canonicalPath + File.separator)) {
-                        entry = input.nextEntry
-                        continue
-                    }
-                    if (entry.isDirectory) {
-                        target.mkdirs()
-                    } else {
-                        target.parentFile?.mkdirs()
-                        target.outputStream().use { out -> input.copyTo(out) }
-                    }
-                    entry = input.nextEntry
-                }
-            }
-            marker.writeText(stamp)
-        }
-        return dest
-    }
 
     fun execute(
         context: Context,

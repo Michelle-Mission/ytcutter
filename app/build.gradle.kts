@@ -14,7 +14,7 @@ android {
         applicationId = "app.ytcutter"
         minSdk = 29
         targetSdk = 36
-        versionCode = 39
+        versionCode = 40
         versionName = "1.0.0"
         ndk {
             abiFilters += "arm64-v8a"
