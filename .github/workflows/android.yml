@@ -65,8 +65,8 @@ jobs:
           APK_URL=$(printf '%s' "$REL" | python3 -c "import sys,json;print(next((a['browser_download_url'] for a in json.load(sys.stdin).get('assets',[]) if a['name'].endswith('.apk')),''))") || exit 0
           [ -n "$APK_URL" ] || exit 0
           curl -fsSL -o prev.apk "$APK_URL"
-          curl -fsSL -o prev-update.json "https://github.com/$GITHUB_REPOSITORY/releases/latest/download/update.json" || true
-          CODE=$(python3 -c "import json;print(json.load(open('prev-update.json'))['versionCode'])" 2>/dev/null || true)
+          AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 2>/dev/null | tail -1)
+          CODE=$("$AAPT" dump badging prev.apk 2>/dev/null | sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p" | head -1)
           if [ "$CODE" = "${{ steps.ver.outputs.code }}" ]; then CODE=""; fi
           echo "code=$CODE" >> "$GITHUB_OUTPUT"
           echo "previous versionCode: $CODE"
