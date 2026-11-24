@@ -11,7 +11,7 @@ object DownloadArgs {
         req: DownloadRequest,
         outPath: String,
         cookiesPath: String?,
-        fragments: Int = 4
+        fragments: Int = 8
     ): List<Pair<String, String?>> {
         val args = mutableListOf<Pair<String, String?>>()
         cookiesPath?.let { args += "--cookies" to it }
