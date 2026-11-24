@@ -3,8 +3,6 @@ package app.ytcutter.core.data
 import app.ytcutter.core.data.DownloadArgs
 import app.ytcutter.core.data.InfoCache
 import app.ytcutter.core.common.NetscapeCookies
-import app.ytcutter.core.data.NewPipeMapper
-import app.ytcutter.core.data.VideoInfo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
@@ -36,14 +34,6 @@ class FixPassTest {
             InfoCache.existingPath(dir, "https://youtu.be/dQw4w9WgXcQ")
         )
         assertNull(InfoCache.existingPath(dir, "https://youtu.be/aaaaaaaaaaa"))
-    }
-
-    @Test
-    fun usableOnlyWhenThereAreStreams() {
-        val empty = VideoInfo("id", "t", 10, null, emptySet(), false)
-        val audio = VideoInfo("id", "t", 10, null, emptySet(), true)
-        assertEquals(false, NewPipeMapper.isUsable(empty))
-        assertEquals(true, NewPipeMapper.isUsable(audio))
     }
 
     @Test

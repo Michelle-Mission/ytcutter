@@ -66,7 +66,7 @@ class HistoryRepo private constructor(context: Context) {
 
     fun updateProgress(id: Long, percent: Int, detail: String?) = write(id) {
         put("status", DownloadStatus.RUNNING.dbValue)
-        put("progress", percent.coerceIn(0, 100))
+        put("progress", percent.coerceIn(-1, 100))
         put("detail", detail)
     }
 

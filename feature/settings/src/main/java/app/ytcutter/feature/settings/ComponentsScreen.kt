@@ -69,7 +69,9 @@ fun ComponentsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                "Hanya yt-dlp yang bisa diperbarui tanpa memasang APK baru.",
+                "yt-dlp bisa diperbarui langsung dari rilis resmi. FFmpeg, Python, dan " +
+                    "aria2c adalah native library sehingga ikut pembaruan aplikasi; " +
+                    "pembaruan aplikasi memakai patch delta kecil (tidak unduh APK penuh).",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -166,7 +168,7 @@ fun AboutScreen(
             )
             Text(
                 "Pengunduh video YouTube pribadi. Dibangun dengan Kotlin, Jetpack Compose, " +
-                    "yt-dlp, dan NewPipe Extractor.",
+                    "yt-dlp, FFmpeg, dan aria2c.",
                 style = MaterialTheme.typography.bodyMedium
             )
 

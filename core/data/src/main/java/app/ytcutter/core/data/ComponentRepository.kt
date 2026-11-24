@@ -31,10 +31,22 @@ class ComponentRepository(
                 note = "Diperbarui dari rilis resmi yt-dlp"
             ),
             ComponentInfo(
-                name = "NewPipe Extractor",
-                version = NEWPIPE_VERSION,
+                name = "FFmpeg",
+                version = "tertanam",
                 updatable = false,
-                note = "Tertanam di dalam aplikasi"
+                note = "Native library; diperbarui lewat pembaruan aplikasi (patch delta ±0,5 MB)"
+            ),
+            ComponentInfo(
+                name = "Python runtime",
+                version = "tertanam",
+                updatable = false,
+                note = "Native library; diperbarui lewat pembaruan aplikasi"
+            ),
+            ComponentInfo(
+                name = "aria2c",
+                version = "tertanam",
+                updatable = false,
+                note = "Pengunduh multi-koneksi bawaan aplikasi"
             )
         )
     }
@@ -52,7 +64,4 @@ class ComponentRepository(
         )
     }.getOrNull()
 
-    private companion object {
-        const val NEWPIPE_VERSION = "v0.27.1"
-    }
 }
