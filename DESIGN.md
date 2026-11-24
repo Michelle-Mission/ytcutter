@@ -13,19 +13,19 @@ Operate. Tujuan tiap layar: menyelesaikan tugas cepat dan jelas. Konsistensi dan
 | Lembar bawah | Judul `titleMedium` | Pilih format |
 | Status boot | Judul `titleLarge` bold | Menyiapkan mesin |
 
-Padding layar selalu 20dp kiri/kanan, 8dp atas (di bawah TopAppBar), 24dp bawah. TopAppBar menangani area status bar; tidak ada judul tambahan di dalam konten.
+Padding layar selalu 20dp kiri/kanan, 4dp atas (di bawah TopAppBar), 24dp bawah. TopAppBar menangani area status bar; tidak ada judul tambahan di dalam konten.
 
 ## Skala tipe
 
 | Peran | Style | Ukuran |
 |---|---|---|
-| Judul halaman (semua) | `titleLarge` | 20sp bold |
-| Judul menonjol (video, sheet) | `titleMedium` | 16sp semibold |
-| Judul kartu/baris | `titleSmall` | 14sp semibold |
-| Isi | `bodyMedium` | 13.5sp |
-| Meta/sekunder | `bodySmall` | 12sp |
-| Tombol | `labelLarge` | 13sp semibold |
-| Pil/label kecil | `labelSmall` | 11sp medium |
+| Judul halaman (semua) | `titleLarge` | 22sp bold |
+| Judul menonjol (video, sheet) | `titleMedium` | 18sp semibold |
+| Judul kartu/baris | `titleSmall` | 15sp semibold |
+| Isi | `bodyMedium` | 15sp |
+| Meta/sekunder | `bodySmall` | 13sp |
+| Tombol | `labelLarge` | 14sp semibold |
+| Pil/label kecil | `labelSmall` | 12sp medium |
 
 Aturan: `titleMedium` hanya untuk judul video/lembar; semua judul kartu dan baris memakai `titleSmall`. Teks sekunder selalu `bodySmall` + `onSurfaceVariant`.
 

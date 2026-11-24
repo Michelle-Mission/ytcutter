@@ -159,7 +159,7 @@ fun CookieScreen(onBack: () -> Unit) {
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 20.dp)
-                .padding(top = 8.dp)
+                .padding(top = 4.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {

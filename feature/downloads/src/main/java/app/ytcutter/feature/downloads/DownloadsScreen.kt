@@ -61,7 +61,7 @@ fun DownloadsScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
 
         if (rows.isEmpty()) {
             EmptyDownloads()

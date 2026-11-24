@@ -89,14 +89,14 @@ fun HomeScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
-                .padding(top = 8.dp, bottom = 24.dp)
+                .padding(top = 4.dp, bottom = 24.dp)
         ) {
             Text(
                 "Potong video YouTube tanpa unduh penuh",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
 
             OutlinedTextField(
             value = text,

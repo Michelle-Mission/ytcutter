@@ -60,7 +60,7 @@ fun ComponentsScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
-                .padding(top = 8.dp, bottom = 24.dp),
+                .padding(top = 4.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
@@ -146,7 +146,7 @@ fun AboutScreen(appVersion: String, onBack: () -> Unit) {
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
-                .padding(top = 8.dp, bottom = 24.dp),
+                .padding(top = 4.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text("YT Cutter", style = MaterialTheme.typography.headlineSmall)
