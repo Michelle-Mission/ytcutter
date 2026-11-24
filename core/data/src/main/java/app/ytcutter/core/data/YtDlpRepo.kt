@@ -71,6 +71,11 @@ object YtDlpRepo {
         return "Gagal menyiapkan mesin — $chain"
     }
 
+    private suspend fun awaitReady(context: Context) {
+        if (ready) return
+        ensureInit(context).exceptionOrNull()?.let { throw it }
+    }
+
     suspend fun versionName(context: Context): String? = withContext(Dispatchers.IO) {
         awaitReady(context)
         initMutex.withLock {
@@ -139,18 +144,19 @@ object YtDlpRepo {
         downloadMutex.withLock {
             val fromInfoJson = options.any { it.first == "--load-info-json" }
             val extractorArgs = if (fromInfoJson) null else youtubeArgs(context, url)
-            val exit = runDownload(url, options, processId, extractorArgs, onLine)
+            val exit = runDownload(context, url, options, processId, extractorArgs, onLine)
             when {
                 exit == 0 -> exit
                 // JSON cache bisa kedaluwarsa: ulangi dengan ekstraksi penuh.
-                fromInfoJson -> runDownload(url, DownloadArgs.stripInfoJson(options), processId, null, onLine)
-                extractorArgs != null -> runDownload(url, options, processId, null, onLine)
+                fromInfoJson -> runDownload(context, url, DownloadArgs.stripInfoJson(options), processId, null, onLine)
+                extractorArgs != null -> runDownload(context, url, options, processId, null, onLine)
                 else -> exit
             }
         }
     }
 
     private suspend fun runDownload(
+        context: Context,
         url: String,
         options: List<Pair<String, String?>>,
         processId: String,
