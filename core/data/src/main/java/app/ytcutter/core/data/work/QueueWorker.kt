@@ -12,6 +12,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import app.ytcutter.core.model.Quality
 import app.ytcutter.core.model.Action
+import app.ytcutter.core.data.Aria2
 import app.ytcutter.core.data.CookieStore
 import app.ytcutter.core.data.DownloadArgs
 import app.ytcutter.core.model.DownloadRequest
@@ -62,6 +63,7 @@ class QueueWorker(
 
         var attempt = 0
         var usedFallback = false
+        var ariaEnabled = Aria2.available()
         while (true) {
             if (ActiveWork.cancelId == row.id) {
                 ActiveWork.cancelId = null
@@ -86,7 +88,8 @@ class QueueWorker(
                 outFile.absolutePath,
                 cookies,
                 profile.fragments,
-                fallback = usedFallback
+                fallback = usedFallback,
+                aria2 = if (ariaEnabled) Aria2.args(profile.fragments) else emptyList()
             )
 
             var lastLine = ""
@@ -163,6 +166,13 @@ class QueueWorker(
             }
 
             val mapped = ErrorMapper.map(lastLine.ifBlank { "yt-dlp keluar dengan kode $exit" })
+            if (ariaEnabled && exit != 0) {
+                ariaEnabled = false
+                outFile.delete()
+                java.io.File("${outFile.absolutePath}.part").delete()
+                java.io.File("${outFile.absolutePath}.aria2").delete()
+                continue
+            }
             if (!usedFallback && RetryPolicy.isForbidden(lastLine)) {
                 usedFallback = true
                 outFile.delete()

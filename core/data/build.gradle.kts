@@ -32,6 +32,7 @@ dependencies {
     implementation(libs.commons.compress)
     implementation(libs.youtubedl.library)
     implementation(libs.youtubedl.ffmpeg)
+    implementation(libs.youtubedl.aria2c)
     implementation(libs.newpipeextractor)
     implementation(libs.androidx.work.runtime)
     testImplementation(libs.json)

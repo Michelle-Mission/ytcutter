@@ -46,6 +46,7 @@ object YtDlpRepo {
             _state.value = EngineState.Starting
             try {
                 YoutubeDL.getInstance().init(context.applicationContext)
+                runCatching { Aria2.init(context.applicationContext) }
                 ready = true
                 _state.value = EngineState.Ready
                 Result.success(Unit)

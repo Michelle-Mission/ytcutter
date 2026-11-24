@@ -50,6 +50,22 @@ class DownloadArgsTest {
     }
 
     @Test
+    fun aria2ArgsAreForwarded() {
+        val req = DownloadRequest(
+            url = "https://youtu.be/dQw4w9WgXcQ",
+            quality = Quality("720p", 720),
+            start = 0,
+            end = 10
+        )
+        val aria = listOf(
+            "--downloader" to "/lib/libaria2c.so",
+            "--external-downloader-args" to "/lib/libaria2c.so:-x 4 -s 4"
+        )
+        val args = DownloadArgs.build(req, out, cookiesPath = null, aria2 = aria)
+        assertTrue(args.containsAll(aria))
+    }
+
+    @Test
     fun audioArgsExtractM4a() {
         val req = DownloadRequest(
             url = "https://youtu.be/dQw4w9WgXcQ",

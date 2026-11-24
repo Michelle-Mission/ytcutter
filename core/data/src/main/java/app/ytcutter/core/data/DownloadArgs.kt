@@ -12,7 +12,8 @@ object DownloadArgs {
         outPath: String,
         cookiesPath: String?,
         fragments: Int = 8,
-        fallback: Boolean = false
+        fallback: Boolean = false,
+        aria2: List<Pair<String, String?>> = emptyList()
     ): List<Pair<String, String?>> {
         val args = mutableListOf<Pair<String, String?>>()
         cookiesPath?.let { args += "--cookies" to it }
@@ -32,6 +33,7 @@ object DownloadArgs {
             args += "--merge-output-format" to "mp4"
         }
 
+        args += aria2
         args += "--concurrent-fragments" to fragments.coerceIn(1, 8).toString()
         args += "--retries" to "10"
         args += "--fragment-retries" to "10"
