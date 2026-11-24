@@ -160,7 +160,8 @@ jobs:
           mkdir -p docs/deltas
           cp /tmp/pub/update.json docs/update.json
           if [ -f /tmp/pub/deltas/latest.patch ]; then cp /tmp/pub/deltas/latest.patch docs/deltas/latest.patch; fi
-          git add docs/update.json docs/deltas/latest.patch
+          git add docs/update.json
+          if [ -f docs/deltas/latest.patch ]; then git add docs/deltas/latest.patch; fi
           if git diff --cached --quiet; then
             echo "manifest tidak berubah"
           else
