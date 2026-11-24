@@ -60,12 +60,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
-          gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.assets[].browser_download_url' > prev-urls.txt || exit 0
-          APK_URL=$(grep '\.apk$' prev-urls.txt | head -1) || exit 0
+          REL=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/latest") || exit 0
+          APK_URL=$(printf '%s' "$REL" | python3 -c "import sys,json;print(next((a['browser_download_url'] for a in json.load(sys.stdin).get('assets',[]) if a['name'].endswith('.apk')),''))") || exit 0
           [ -n "$APK_URL" ] || exit 0
           curl -fsSL -o prev.apk "$APK_URL"
           curl -fsSL -o prev-update.json "https://github.com/$GITHUB_REPOSITORY/releases/latest/download/update.json" || true
           CODE=$(python3 -c "import json;print(json.load(open('prev-update.json'))['versionCode'])" 2>/dev/null || true)
+          if [ "$CODE" = "${{ steps.ver.outputs.code }}" ]; then CODE=""; fi
           echo "code=$CODE" >> "$GITHUB_OUTPUT"
           echo "previous versionCode: $CODE"
 
