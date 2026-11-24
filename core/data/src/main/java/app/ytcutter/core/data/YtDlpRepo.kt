@@ -129,10 +129,11 @@ object YtDlpRepo {
     suspend fun json(context: Context, url: String): JsonResult = withContext(Dispatchers.IO) {
         awaitReady(context)
         metaMutex.withLock {
+            // Info tidak butuh poToken: jalur tanpa token jauh lebih cepat.
+            val first = runJson(context, url, null)
+            if (first.json != null) return@withLock first
             val extractorArgs = youtubeArgs(context, url, timeoutMs = 2_500)
-            val first = runJson(context, url, extractorArgs)
-            // poToken/client paksaan bisa ditolak YouTube; ulangi tanpa itu.
-            if (first.json != null || extractorArgs == null) first else runJson(context, url, null)
+            if (extractorArgs == null) first else runJson(context, url, extractorArgs)
         }
     }
 

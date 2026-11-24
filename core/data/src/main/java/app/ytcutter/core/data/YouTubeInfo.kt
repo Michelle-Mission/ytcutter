@@ -36,6 +36,10 @@ object YouTubeInfo {
         }
     }
 
+    fun warmUp(context: Context) {
+        runCatching { ensureInit(context.applicationContext) }
+    }
+
     private fun ensureInit(context: Context) {
         if (initialized) return
         NewPipe.init(NewPipeDownloader(context))
