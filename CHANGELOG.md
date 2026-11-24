@@ -2,6 +2,13 @@
 
 Semua perubahan kecil tetap di bawah versi `1.0.0`. Nomor versi hanya naik untuk rilis besar.
 
+## Build 20
+- Jarak antar kartu di Pengaturan dirapikan.
+
+## Build 19
+- Pembaruan delta (patch bsdiff), pasang via PackageInstaller.
+- Changelog di dalam aplikasi.
+
 ## 1.0.0
 
 ### UI

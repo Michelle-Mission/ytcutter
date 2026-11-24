@@ -22,6 +22,10 @@ private data class ChangeEntry(val label: String, val items: List<String>)
 
 private val changes = listOf(
     ChangeEntry(
+        "Build 20",
+        listOf("Jarak antar kartu di Pengaturan dirapikan (Changelog dan Cookie tidak lagi dempet).")
+    ),
+    ChangeEntry(
         "Build 19",
         listOf(
             "Pembaruan aplikasi memakai patch delta: unduhan lebih kecil, APK penuh hanya untuk cadangan.",

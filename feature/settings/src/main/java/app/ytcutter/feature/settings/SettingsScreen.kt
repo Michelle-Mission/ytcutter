@@ -158,6 +158,8 @@ fun SettingsScreen(
             }
         )
 
+        Spacer(Modifier.height(12.dp))
+
         SettingsRow(
             icon = Icons.Default.History,
             title = "Changelog",
