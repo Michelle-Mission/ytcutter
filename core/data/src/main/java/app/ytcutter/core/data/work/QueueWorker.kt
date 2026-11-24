@@ -21,6 +21,7 @@ import app.ytcutter.core.data.InfoCache
 import app.ytcutter.core.data.MediaStorePublisher
 import app.ytcutter.core.common.ProgressLine
 import app.ytcutter.core.common.RetryPolicy
+import app.ytcutter.core.common.DeviceProfile
 import app.ytcutter.core.data.YtDlpRepo
 import app.ytcutter.core.data.cookies.CookiePrefs
 import app.ytcutter.core.model.DownloadRow
@@ -78,7 +79,8 @@ class QueueWorker(
                 end = row.endSec,
                 infoJson = infoJson
             )
-            val args = DownloadArgs.build(request, outFile.absolutePath, cookies)
+            val profile = DeviceProfile.of(applicationContext)
+            val args = DownloadArgs.build(request, outFile.absolutePath, cookies, profile.fragments)
 
             var lastLine = ""
             var latestPercent = 0

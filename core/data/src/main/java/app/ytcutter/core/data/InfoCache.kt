@@ -9,6 +9,18 @@ import java.util.concurrent.ConcurrentHashMap
 object InfoCache {
 
     private val paths = ConcurrentHashMap<String, String>()
+    private val memory = object : LinkedHashMap<String, Pair<VideoInfo, String?>>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Pair<VideoInfo, String?>>) =
+            size > 8
+    }
+
+    @Synchronized
+    fun getInfo(url: String): Pair<VideoInfo, String?>? = memory[url]
+
+    @Synchronized
+    fun putInfo(url: String, info: VideoInfo, path: String?) {
+        memory[url] = info to path
+    }
 
     fun fileName(url: String): String {
         val id = UrlValidator.videoId(url) ?: url.hashCode().toUInt().toString(16)

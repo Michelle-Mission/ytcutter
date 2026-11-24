@@ -1,6 +1,7 @@
 package app.ytcutter.core.data
 
 import android.content.Context
+import app.ytcutter.core.common.DeviceProfile
 import com.yausername.ffmpeg.FFmpeg
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
@@ -132,7 +133,7 @@ object YtDlpRepo {
             // Info tidak butuh poToken: jalur tanpa token jauh lebih cepat.
             val first = runJson(context, url, null)
             if (first.json != null) return@withLock first
-            val extractorArgs = youtubeArgs(context, url, timeoutMs = 2_500)
+            val extractorArgs = youtubeArgs(context, url, DeviceProfile.of(context).tokenTimeoutMs)
             if (extractorArgs == null) first else runJson(context, url, extractorArgs)
         }
     }

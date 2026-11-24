@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
+import app.ytcutter.core.common.DeviceProfile
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,13 +30,8 @@ import kotlin.math.sin
 fun AuroraBackdrop(modifier: Modifier = Modifier) {
     val primary = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.secondary
-    val transition = rememberInfiniteTransition(label = "aurora")
-    val angle by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = (2 * PI).toFloat(),
-        animationSpec = infiniteRepeatable(tween(18000, easing = LinearEasing)),
-        label = "angle"
-    )
+    val animate = DeviceProfile.of(LocalContext.current).animateBackdrop
+    val angle = auroraAngle(animate)
     Canvas(modifier) {
         drawRect(
             Brush.radialGradient(
@@ -57,6 +54,19 @@ fun AuroraBackdrop(modifier: Modifier = Modifier) {
             )
         )
     }
+}
+
+@Composable
+private fun auroraAngle(enabled: Boolean): Float {
+    if (!enabled) return 0.6f
+    val transition = rememberInfiniteTransition(label = "aurora")
+    val angle by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2 * PI).toFloat(),
+        animationSpec = infiniteRepeatable(tween(18000, easing = LinearEasing)),
+        label = "angle"
+    )
+    return angle
 }
 
 @Composable

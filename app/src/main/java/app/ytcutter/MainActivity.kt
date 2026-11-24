@@ -62,6 +62,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import app.ytcutter.core.common.DeviceProfile
 import app.ytcutter.core.common.UrlValidator
 import app.ytcutter.core.data.CrashLog
 import app.ytcutter.core.data.Downloads
@@ -294,7 +295,8 @@ private fun HomeRoute(navController: NavHostController) {
     var homeState by remember { mutableStateOf<HomeState>(HomeState.Idle) }
     var showFormat by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) { PoToken.warmUp(context) }
+    val profile = remember { DeviceProfile.of(context) }
+    LaunchedEffect(Unit) { if (profile.warmUpTokens) PoToken.warmUp(context) }
 
     HomeScreen(
         state = homeState,
@@ -302,45 +304,57 @@ private fun HomeRoute(navController: NavHostController) {
             if (!UrlValidator.isYouTube(url)) {
                 homeState = HomeState.Error("Bukan URL YouTube. Tempel tautan video.")
             } else {
-                homeState = HomeState.Loading
-                scope.launch {
-                    var settled = false
-                    var fastJob: Job? = null
-                    fastJob = launch {
-                        val fast = withTimeoutOrNull(8_000) { YouTubeInfo.fetch(context, url) }
-                            ?.getOrNull()
-                            ?.takeIf { NewPipeMapper.isUsable(it) } ?: return@launch
-                        if (!settled) {
-                            settled = true
-                            homeState = HomeState.Loaded(
-                                fast,
-                                url,
-                                InfoCache.existingPath(context.cacheDir, url)
-                            )
+                val cached = InfoCache.getInfo(url)
+                if (cached != null) {
+                    homeState = HomeState.Loaded(
+                        cached.first,
+                        url,
+                        cached.second ?: InfoCache.existingPath(context.cacheDir, url)
+                    )
+                } else {
+                    homeState = HomeState.Loading
+                    scope.launch {
+                        var settled = false
+                        var fastJob: Job? = null
+                        fastJob = launch {
+                            val fast = withTimeoutOrNull(profile.infoTimeoutMs) {
+                                YouTubeInfo.fetch(context, url)
+                            }
+                                ?.getOrNull()
+                                ?.takeIf { NewPipeMapper.isUsable(it) } ?: return@launch
+                            if (!settled) {
+                                settled = true
+                                val path = InfoCache.existingPath(context.cacheDir, url)
+                                InfoCache.putInfo(url, fast, path)
+                                homeState = HomeState.Loaded(fast, url, path)
+                            }
                         }
-                    }
-                    launch {
-                        val result = YtDlpRepo.json(context, url)
-                        val path = result.json?.let { InfoCache.save(context, url, it) }
-                        val info = result.json?.let { MetadataParser.parse(it) }
-                        val state = when {
-                            info == null -> HomeState.Error(
-                                ErrorMapper.map(result.error ?: "").message
-                            )
-                            info.heights.isEmpty() && !info.hasAudio -> HomeState.Error(
-                                "URL ini bukan video tunggal (playlist/kanal). " +
-                                    "Tempel tautan video."
-                            )
-                            else -> HomeState.Loaded(info, url, path)
-                        }
-                        if (!settled) {
-                            settled = true
-                            fastJob?.cancel()
-                            homeState = state
-                        } else if (state is HomeState.Loaded && path != null) {
-                            val current = homeState
-                            if (current is HomeState.Loaded && current.url == url) {
-                                homeState = current.copy(infoJson = path)
+                        launch {
+                            val result = YtDlpRepo.json(context, url)
+                            val path = result.json?.let { InfoCache.save(context, url, it) }
+                            val info = result.json?.let { MetadataParser.parse(it) }
+                            val state = when {
+                                info == null -> HomeState.Error(
+                                    ErrorMapper.map(result.error ?: "").message
+                                )
+                                info.heights.isEmpty() && !info.hasAudio -> HomeState.Error(
+                                    "URL ini bukan video tunggal (playlist/kanal). " +
+                                        "Tempel tautan video."
+                                )
+                                else -> HomeState.Loaded(info, url, path)
+                            }
+                            if (!settled) {
+                                settled = true
+                                fastJob?.cancel()
+                                if (state is HomeState.Loaded) {
+                                    InfoCache.putInfo(url, state.info, path)
+                                }
+                                homeState = state
+                            } else if (state is HomeState.Loaded && path != null) {
+                                val current = homeState
+                                if (current is HomeState.Loaded && current.url == url) {
+                                    homeState = current.copy(infoJson = path)
+                                }
                             }
                         }
                     }

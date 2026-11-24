@@ -10,7 +10,8 @@ object DownloadArgs {
     fun build(
         req: DownloadRequest,
         outPath: String,
-        cookiesPath: String?
+        cookiesPath: String?,
+        fragments: Int = 4
     ): List<Pair<String, String?>> {
         val args = mutableListOf<Pair<String, String?>>()
         cookiesPath?.let { args += "--cookies" to it }
@@ -26,7 +27,7 @@ object DownloadArgs {
             args += "--merge-output-format" to "mp4"
         }
 
-        args += "--concurrent-fragments" to "8"
+        args += "--concurrent-fragments" to fragments.coerceIn(1, 8).toString()
         args += "--retries" to "2"
         args += "--fragment-retries" to "2"
         args += "--socket-timeout" to "20"
