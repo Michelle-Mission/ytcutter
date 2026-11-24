@@ -41,7 +41,7 @@ object Aria2 {
         }
         return listOf(
             "--downloader" to path,
-            "--external-downloader-args" to "$path:$options"
+            "--external-downloader-args" to "aria2c:$options"
         )
     }
 }
