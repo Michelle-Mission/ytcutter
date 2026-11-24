@@ -96,7 +96,6 @@ import app.ytcutter.feature.settings.AboutScreen
 import app.ytcutter.feature.settings.ChangelogScreen
 import app.ytcutter.feature.settings.ComponentsScreen
 import app.ytcutter.feature.settings.SettingsScreen
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -302,45 +301,29 @@ private fun HomeRoute(navController: NavHostController) {
             } else {
                 homeState = HomeState.Loading
                 scope.launch {
-                    var settled = false
-                    var newPipeJob: Job? = null
-                    newPipeJob = launch {
-                        val fast = withTimeoutOrNull(10_000) { YouTubeInfo.fetch(context, url) }
-                            ?.getOrNull()
-                            ?.takeIf { NewPipeMapper.isUsable(it) } ?: return@launch
-                        if (!settled) {
-                            settled = true
-                            homeState = HomeState.Loaded(
-                                fast,
-                                url,
-                                InfoCache.existingPath(context.cacheDir, url)
-                            )
-                        }
+                    val fast = withTimeoutOrNull(10_000) { YouTubeInfo.fetch(context, url) }
+                        ?.getOrNull()
+                        ?.takeIf { NewPipeMapper.isUsable(it) }
+                    if (fast != null) {
+                        homeState = HomeState.Loaded(
+                            fast,
+                            url,
+                            InfoCache.existingPath(context.cacheDir, url)
+                        )
+                        return@launch
                     }
-                    launch {
-                        val result = YtDlpRepo.json(context, url)
-                        val path = result.json?.let { InfoCache.save(context, url, it) }
-                        val info = result.json?.let { MetadataParser.parse(it) }
-                        val state = when {
-                            info == null -> HomeState.Error(
-                                ErrorMapper.map(result.error ?: "").message
-                            )
-                            info.heights.isEmpty() && !info.hasAudio -> HomeState.Error(
-                                "URL ini bukan video tunggal (playlist/kanal). " +
-                                    "Tempel tautan video."
-                            )
-                            else -> HomeState.Loaded(info, url, path)
-                        }
-                        if (!settled) {
-                            settled = true
-                            newPipeJob?.cancel()
-                            homeState = state
-                        } else if (state is HomeState.Loaded && path != null) {
-                            val current = homeState
-                            if (current is HomeState.Loaded && current.url == url) {
-                                homeState = current.copy(infoJson = path)
-                            }
-                        }
+                    val result = YtDlpRepo.json(context, url)
+                    val path = result.json?.let { InfoCache.save(context, url, it) }
+                    val info = result.json?.let { MetadataParser.parse(it) }
+                    homeState = when {
+                        info == null -> HomeState.Error(
+                            ErrorMapper.map(result.error ?: "").message
+                        )
+                        info.heights.isEmpty() && !info.hasAudio -> HomeState.Error(
+                            "URL ini bukan video tunggal (playlist/kanal). " +
+                                "Tempel tautan video."
+                        )
+                        else -> HomeState.Loaded(info, url, path)
                     }
                 }
             }
