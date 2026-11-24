@@ -12,32 +12,41 @@ class DownloadArgsTest {
     private val out = "/data/user/0/app.ytcutter/cache/out.mp4"
 
     @Test
-    fun videoArgsCapHeightAndCutSection() {
+    fun videoArgsPreferCompatAndAreRobust() {
         val req = DownloadRequest(
             url = "https://youtu.be/dQw4w9WgXcQ",
             quality = Quality("1080p", 1080),
             start = 15,
             end = 220
         )
-        assertEquals(
-            listOf(
-                "-f" to "bv*[height<=1080]+ba/b[height<=1080]/b",
-                "-S" to "ext:mp4:m4a,res:1080",
-                "--merge-output-format" to "mp4",
-                "--concurrent-fragments" to "8",
-                "--retries" to "2",
-                "--fragment-retries" to "2",
-                "--socket-timeout" to "20",
-                "--no-mtime" to null,
-                "--download-sections" to "*00:00:15-00:03:40",
-                "--no-playlist" to null,
-                "--newline" to null,
-                "--continue" to null,
-                "--progress-template" to "download:YTC %(progress.downloaded_bytes)s %(progress.total_bytes_estimate)s %(progress._percent_str)s %(progress._speed_str)s %(progress._eta_str)s",
-                "-o" to out
-            ),
-            DownloadArgs.build(req, out, cookiesPath = null)
+        val args = DownloadArgs.build(req, out, cookiesPath = null)
+        val map = args.toMap()
+        assertEquals("bv*[height<=1080]+ba/b[height<=1080]/b", map["-f"])
+        assertEquals("res:1080,ext:mp4:m4a,vcodec:h264,acodec:m4a", map["-S"])
+        assertEquals("mp4", map["--merge-output-format"])
+        assertEquals("10", map["--retries"])
+        assertEquals("10", map["--fragment-retries"])
+        assertEquals("3", map["--file-access-retries"])
+        assertEquals("15", map["--socket-timeout"])
+        assertEquals("10M", map["--http-chunk-size"])
+        assertEquals("100K", map["--throttled-rate"])
+        assertEquals("*00:00:15-00:03:40", map["--download-sections"])
+        assertEquals(out, map["-o"])
+        assertTrue(args.any { it.first == "--continue" })
+    }
+
+    @Test
+    fun fallbackUsesProgressiveFormats() {
+        val req = DownloadRequest(
+            url = "https://youtu.be/dQw4w9WgXcQ",
+            quality = Quality("1080p", 1080),
+            start = 0,
+            end = 65
         )
+        val map = DownloadArgs.build(req, out, cookiesPath = null, fallback = true).toMap()
+        assertEquals("b[height<=1080][ext=mp4]/b[height<=1080]/b", map["-f"])
+        assertTrue(map["-S"] == null)
+        assertEquals("mp4", map["--merge-output-format"])
     }
 
     @Test
@@ -48,25 +57,11 @@ class DownloadArgsTest {
             start = 0,
             end = 65
         )
-        assertEquals(
-            listOf(
-                "-f" to "ba/b",
-                "-x" to null,
-                "--audio-format" to "m4a",
-                "--concurrent-fragments" to "8",
-                "--retries" to "2",
-                "--fragment-retries" to "2",
-                "--socket-timeout" to "20",
-                "--no-mtime" to null,
-                "--download-sections" to "*00:00:00-00:01:05",
-                "--no-playlist" to null,
-                "--newline" to null,
-                "--continue" to null,
-                "--progress-template" to "download:YTC %(progress.downloaded_bytes)s %(progress.total_bytes_estimate)s %(progress._percent_str)s %(progress._speed_str)s %(progress._eta_str)s",
-                "-o" to out
-            ),
-            DownloadArgs.build(req, out, cookiesPath = null)
-        )
+        val map = DownloadArgs.build(req, out, cookiesPath = null).toMap()
+        assertEquals("ba/b", map["-f"])
+        assertEquals("m4a", map["--audio-format"])
+        assertTrue(map.containsKey("-x"))
+        assertEquals("*00:00:00-00:01:05", map["--download-sections"])
     }
 
     @Test

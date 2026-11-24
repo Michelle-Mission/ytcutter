@@ -11,7 +11,8 @@ object DownloadArgs {
         req: DownloadRequest,
         outPath: String,
         cookiesPath: String?,
-        fragments: Int = 8
+        fragments: Int = 8,
+        fallback: Boolean = false
     ): List<Pair<String, String?>> {
         val args = mutableListOf<Pair<String, String?>>()
         cookiesPath?.let { args += "--cookies" to it }
@@ -22,15 +23,23 @@ object DownloadArgs {
             args += "--audio-format" to "m4a"
         } else {
             val height = req.quality.height ?: 0
-            args += "-f" to FormatMapper.videoSelector(height)
-            args += "-S" to "ext:mp4:m4a,res:$height"
+            if (fallback) {
+                args += "-f" to FormatMapper.fallbackSelector(height)
+            } else {
+                args += "-f" to FormatMapper.videoSelector(height)
+                args += "-S" to "res:$height,ext:mp4:m4a,vcodec:h264,acodec:m4a"
+            }
             args += "--merge-output-format" to "mp4"
         }
 
         args += "--concurrent-fragments" to fragments.coerceIn(1, 8).toString()
-        args += "--retries" to "2"
-        args += "--fragment-retries" to "2"
-        args += "--socket-timeout" to "20"
+        args += "--retries" to "10"
+        args += "--fragment-retries" to "10"
+        args += "--file-access-retries" to "3"
+        args += "--retry-sleep" to "2"
+        args += "--socket-timeout" to "15"
+        args += "--http-chunk-size" to "10M"
+        args += "--throttled-rate" to "100K"
         args += "--no-mtime" to null
         args += "--download-sections" to "*${sectionTime(req.start)}-${sectionTime(req.end)}"
         req.infoJson?.let { args += "--load-info-json" to it }

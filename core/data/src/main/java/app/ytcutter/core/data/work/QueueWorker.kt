@@ -61,6 +61,7 @@ class QueueWorker(
         val infoJson = InfoCache.existingPath(applicationContext.cacheDir, row.url)
 
         var attempt = 0
+        var usedFallback = false
         while (true) {
             if (ActiveWork.cancelId == row.id) {
                 ActiveWork.cancelId = null
@@ -80,7 +81,13 @@ class QueueWorker(
                 infoJson = infoJson
             )
             val profile = DeviceProfile.of(applicationContext)
-            val args = DownloadArgs.build(request, outFile.absolutePath, cookies, profile.fragments)
+            val args = DownloadArgs.build(
+                request,
+                outFile.absolutePath,
+                cookies,
+                profile.fragments,
+                fallback = usedFallback
+            )
 
             var lastLine = ""
             var latestPercent = 0
@@ -156,6 +163,12 @@ class QueueWorker(
             }
 
             val mapped = ErrorMapper.map(lastLine.ifBlank { "yt-dlp keluar dengan kode $exit" })
+            if (!usedFallback && RetryPolicy.isForbidden(lastLine)) {
+                usedFallback = true
+                outFile.delete()
+                java.io.File("${outFile.absolutePath}.part").delete()
+                continue
+            }
             if (RetryPolicy.isTransient(lastLine) && attempt < 2) {
                 attempt++
                 delay(5_000)

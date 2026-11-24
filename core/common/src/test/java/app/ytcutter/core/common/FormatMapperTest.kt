@@ -45,6 +45,11 @@ class FormatMapperTest {
     }
 
     @Test
+    fun fallbackSelectorPrefersProgressiveMp4() {
+        assertEquals("b[height<=720][ext=mp4]/b[height<=720]/b", FormatMapper.fallbackSelector(720))
+    }
+
+    @Test
     fun audioSelector() {
         assertEquals("ba/b", FormatMapper.audioSelector())
     }

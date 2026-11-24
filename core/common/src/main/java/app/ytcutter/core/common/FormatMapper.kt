@@ -18,5 +18,8 @@ object FormatMapper {
     fun videoSelector(height: Int): String =
         "bv*[height<=$height]+ba/b[height<=$height]/b"
 
+    fun fallbackSelector(height: Int): String =
+        "b[height<=$height][ext=mp4]/b[height<=$height]/b"
+
     fun audioSelector(): String = "ba/b"
 }
