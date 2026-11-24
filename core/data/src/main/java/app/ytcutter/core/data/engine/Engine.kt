@@ -58,6 +58,36 @@ object Engine {
     }
 
 
+    private fun unpack(zip: File, dest: File): File {
+        if (!zip.isFile) return dest
+        val marker = File(dest, ".version")
+        val stamp = "${zip.length()}"
+        if (marker.isFile && marker.readText() == stamp) return dest
+        dest.deleteRecursively()
+        dest.mkdirs()
+        runCatching {
+            ZipInputStream(zip.inputStream().buffered()).use { input ->
+                var entry = input.nextEntry
+                while (entry != null) {
+                    val target = File(dest, entry.name)
+                    if (!target.canonicalPath.startsWith(dest.canonicalPath + File.separator)) {
+                        entry = input.nextEntry
+                        continue
+                    }
+                    if (entry.isDirectory) {
+                        target.mkdirs()
+                    } else {
+                        target.parentFile?.mkdirs()
+                        target.outputStream().use { out -> input.copyTo(out) }
+                    }
+                    entry = input.nextEntry
+                }
+            }
+            marker.writeText(stamp)
+        }
+        return dest
+    }
+
     fun execute(
         context: Context,
         args: List<String>,
