@@ -1,0 +1,18 @@
+name: debug-prev
+on: workflow_dispatch
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: probe
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -x
+          curl -fsSL -o prev.apk -w "%{http_code} %{size_download}\n" "https://github.com/$GITHUB_REPOSITORY/releases/download/v1.0.0/YT-Cutter-1.0.0.apk"
+          AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | tail -1); echo "aapt=$AAPT"
+          "$AAPT" dump badging prev.apk | head -2
+          curl -s -o /dev/null -w "list=%{http_code}\n" -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/$GITHUB_REPOSITORY/releases?per_page=3"
+          curl -s -o /dev/null -w "latest=%{http_code}\n" -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/latest"
