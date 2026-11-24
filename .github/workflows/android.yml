@@ -56,41 +56,22 @@ jobs:
         id: prev
         if: startsWith(github.ref, 'refs/tags/')
         continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -e
-          API="https://api.github.com/repos/$GITHUB_REPOSITORY"
-          APK_ID=""
-          for i in 1 2 3 4 5; do
-            LIST=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
-              "$API/releases?per_page=10" 2>/dev/null || true)
-            APK_ID=$(printf '%s' "$LIST" | python3 -c "
-          import sys, json
-          try: rs = json.load(sys.stdin)
-          except Exception: rs = []
-          for r in rs:
-              if r.get('draft'): continue
-              for a in r.get('assets', []):
-                  if a['name'].endswith('.apk'):
-                      print(a['id']); raise SystemExit
-          " 2>/dev/null || true)
-            [ -n "$APK_ID" ] && break
-            sleep 5
-          done
-          [ -n "$APK_ID" ] || exit 0
+          NEW="${{ steps.ver.outputs.code }}"
+          PREV=$((NEW - 1))
+          URL="https://github.com/$GITHUB_REPOSITORY/releases/download/${{ github.ref_name }}/YT-Cutter-${{ steps.ver.outputs.name }}.apk"
           ok=0
-          for i in 1 2 3; do
-            if curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/octet-stream" \
-              -o prev.apk "$API/releases/assets/$APK_ID"; then ok=1; break; fi
-            sleep 5
+          for i in $(seq 1 12); do
+            if curl -fsSL -o prev.apk "$URL"; then ok=1; break; fi
+            sleep 10
           done
           [ "$ok" = "1" ] || exit 0
           AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 2>/dev/null | tail -1)
           CODE=$("$AAPT" dump badging prev.apk 2>/dev/null | sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p" | head -1)
-          if [ "$CODE" = "${{ steps.ver.outputs.code }}" ]; then CODE=""; fi
+          if [ -z "$CODE" ] || [ "$CODE" != "$PREV" ]; then exit 0; fi
           echo "code=$CODE" >> "$GITHUB_OUTPUT"
-          echo "previous versionCode: $CODE"
+          echo "previous versionCode: $CODE (dari aset rilis yang sama)"
 
       - name: Delta patch
         id: delta
