@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      RELEASE_TAG: v1.0.0
     steps:
       - uses: actions/checkout@v4
 
@@ -48,19 +50,19 @@ jobs:
         run: gradle --no-daemon testDebugUnitTest assembleRelease
 
       - name: Release asset
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
         run: |
           cp app/build/outputs/apk/release/app-release.apk "YT-Cutter-${{ steps.ver.outputs.name }}.apk"
 
       - name: Previous build
         id: prev
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
         continue-on-error: true
         run: |
           set -e
           NEW="${{ steps.ver.outputs.code }}"
           PREV=$((NEW - 1))
-          URL="https://github.com/$GITHUB_REPOSITORY/releases/download/${{ github.ref_name }}/YT-Cutter-${{ steps.ver.outputs.name }}.apk"
+          URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$RELEASE_TAG/YT-Cutter-${{ steps.ver.outputs.name }}.apk"
           ok=0
           for i in $(seq 1 12); do
             if curl -fsSL -o prev.apk "$URL"; then ok=1; break; fi
@@ -75,7 +77,7 @@ jobs:
 
       - name: Delta patch
         id: delta
-        if: startsWith(github.ref, 'refs/tags/') && steps.prev.outputs.code != ''
+        if: (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')) && steps.prev.outputs.code != ''
         env:
           PREV_CODE: ${{ steps.prev.outputs.code }}
           NEW_CODE: ${{ steps.ver.outputs.code }}
@@ -91,11 +93,11 @@ jobs:
           python3 -c "import os;print('patch bytes:', os.path.getsize('$PATCH'))"
 
       - name: Manifest
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
         env:
           OWNER: ${{ github.repository_owner }}
           REPO: ${{ github.event.repository.name }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ env.RELEASE_TAG }}
           VNAME: ${{ steps.ver.outputs.name }}
           VCODE: ${{ steps.ver.outputs.code }}
           PATCH_NAME: ${{ steps.delta.outputs.patch }}
@@ -130,16 +132,18 @@ jobs:
           PY
 
       - name: Attach release files
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          make_latest: true
           files: |
             YT-Cutter-*.apk
             update.json
             update-b*-from-b*.patch
 
       - name: Hapus patch lama
-        if: startsWith(github.ref, 'refs/tags/') && steps.delta.outputs.patch != ''
+        if: (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')) && steps.delta.outputs.patch != ''
         env:
           GH_TOKEN: ${{ github.token }}
           KEEP: ${{ steps.delta.outputs.patch }}
