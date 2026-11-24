@@ -26,6 +26,7 @@ private val changes = listOf(
         listOf(
             "Rilis pertama YT Cutter.",
             "Potong dan unduh video YouTube tanpa mengunduh bagian yang tidak dipakai.",
+            "Pembaruan delta: unduhan kecil, APK penuh hanya sebagai cadangan.",
             "Status komponen dan pemeriksaan pembaruan di dalam aplikasi.",
             "Dukungan cookie YouTube untuk video yang butuh login."
         )

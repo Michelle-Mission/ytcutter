@@ -251,7 +251,7 @@ private fun AppNavHost() {
                     onOpenComponents = { navController.navigate(Route.Components.path) },
                     onOpenAbout = { navController.navigate(Route.About.path) },
                     onOpenChangelog = { navController.navigate(Route.Changelog.path) },
-                    updateSize = update?.apk?.size,
+                    updateSize = update?.let { u -> u.patch?.asset?.size ?: u.apk.size },
                     updateStatus = updateStatus,
                     updateProgress = updateProgress,
                     updateBusy = updateBusy

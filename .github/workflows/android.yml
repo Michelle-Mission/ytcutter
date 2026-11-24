@@ -52,6 +52,40 @@ jobs:
         run: |
           cp app/build/outputs/apk/release/app-release.apk "YT-Cutter-${{ steps.ver.outputs.name }}.apk"
 
+      - name: Previous build
+        id: prev
+        if: startsWith(github.ref, 'refs/tags/')
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.assets[].browser_download_url' > prev-urls.txt || exit 0
+          APK_URL=$(grep '\.apk$' prev-urls.txt | head -1) || exit 0
+          [ -n "$APK_URL" ] || exit 0
+          curl -fsSL -o prev.apk "$APK_URL"
+          curl -fsSL -o prev-update.json "https://github.com/$GITHUB_REPOSITORY/releases/latest/download/update.json" || true
+          CODE=$(python3 -c "import json;print(json.load(open('prev-update.json'))['versionCode'])" 2>/dev/null || true)
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "previous versionCode: $CODE"
+
+      - name: Delta patch
+        id: delta
+        if: startsWith(github.ref, 'refs/tags/') && steps.prev.outputs.code != ''
+        env:
+          PREV_CODE: ${{ steps.prev.outputs.code }}
+          NEW_CODE: ${{ steps.ver.outputs.code }}
+          VNAME: ${{ steps.ver.outputs.name }}
+        run: |
+          set -e
+          sudo apt-get update -qq && sudo apt-get install -y -qq bsdiff
+          APK="YT-Cutter-${VNAME}.apk"
+          PATCH="update-b${NEW_CODE}-from-b${PREV_CODE}.patch"
+          bsdiff prev.apk "$APK" "$PATCH"
+          echo "patch=$PATCH" >> "$GITHUB_OUTPUT"
+          echo "prev=$PREV_CODE" >> "$GITHUB_OUTPUT"
+          python3 -c "import os;print('patch bytes:', os.path.getsize('$PATCH'))"
+
       - name: Manifest
         if: startsWith(github.ref, 'refs/tags/')
         env:
@@ -60,22 +94,33 @@ jobs:
           TAG: ${{ github.ref_name }}
           VNAME: ${{ steps.ver.outputs.name }}
           VCODE: ${{ steps.ver.outputs.code }}
+          PATCH_NAME: ${{ steps.delta.outputs.patch }}
+          PREV_CODE: ${{ steps.delta.outputs.prev }}
         run: |
-          python3 - "$OWNER" "$REPO" "$TAG" "$VNAME" "$VCODE" <<'PY'
+          python3 - "$OWNER" "$REPO" "$TAG" "$VNAME" "$VCODE" "$PATCH_NAME" "$PREV_CODE" <<'PY'
           import hashlib, json, os, sys
-          owner, repo, tag, vname, code = sys.argv[1:6]
+          owner, repo, tag, vname, code, patch, prev = sys.argv[1:8]
           apk = f"YT-Cutter-{vname}.apk"
+          base = f"https://github.com/{owner}/{repo}/releases/download/{tag}"
           data = {
               "versionName": vname,
               "versionCode": int(code),
               "notes": "Lihat catatan rilis di halaman GitHub.",
               "apk": {
                   "name": apk,
-                  "url": f"https://github.com/{owner}/{repo}/releases/download/{tag}/{apk}",
+                  "url": f"{base}/{apk}",
                   "sha256": hashlib.sha256(open(apk, "rb").read()).hexdigest(),
                   "size": os.path.getsize(apk),
               },
           }
+          if patch and prev:
+              data["patch"] = {
+                  "name": patch,
+                  "url": f"{base}/{patch}",
+                  "sha256": hashlib.sha256(open(patch, "rb").read()).hexdigest(),
+                  "size": os.path.getsize(patch),
+                  "fromVersionCode": int(prev),
+              }
           json.dump(data, open("update.json", "w"), indent=2)
           print(open("update.json").read())
           PY
@@ -87,6 +132,7 @@ jobs:
           files: |
             YT-Cutter-*.apk
             update.json
+            update-b*-from-b*.patch
 
       - uses: actions/upload-artifact@v4
         with:
