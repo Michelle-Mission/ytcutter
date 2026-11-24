@@ -5,10 +5,10 @@
     "message": "Layanan sedang diperbaiki. Coba lagi beberapa saat lagi."
   },
   "announcement": {
-    "id": "",
-    "title": "",
-    "message": "",
-    "url": ""
+    "id": "uji-1",
+    "title": "Uji pengumuman",
+    "message": "Ini pesan uji dari GitHub Pages. Banner muncul sekali per id.",
+    "url": "https://github.com/nurfilardi/ytcutter/releases"
   },
   "features": {
     "downloader": true,
