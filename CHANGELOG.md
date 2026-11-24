@@ -2,6 +2,10 @@
 
 Semua perubahan kecil tetap di bawah versi `1.0.0`. Nomor versi hanya naik untuk rilis besar.
 
+## Build 22
+- Info video paralel (NewPipe vs yt-dlp), token YouTube 2,5 dtk.
+- Pengaturan: bagian Pembaruan berisi Komponen + Changelog.
+
 ## Build 21
 - Pencarian info video lebih cepat (poToken timeout 4 dtk + warmup, batas NewPipe 8 dtk).
 - Validasi APK sebelum pemasangan: tolak APK rusak/tanda tangan beda dengan pesan jelas.

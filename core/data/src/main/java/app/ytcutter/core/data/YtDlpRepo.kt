@@ -129,7 +129,7 @@ object YtDlpRepo {
     suspend fun json(context: Context, url: String): JsonResult = withContext(Dispatchers.IO) {
         awaitReady(context)
         metaMutex.withLock {
-            val extractorArgs = youtubeArgs(context, url, timeoutMs = 4_000)
+            val extractorArgs = youtubeArgs(context, url, timeoutMs = 2_500)
             val first = runJson(context, url, extractorArgs)
             // poToken/client paksaan bisa ditolak YouTube; ulangi tanpa itu.
             if (first.json != null || extractorArgs == null) first else runJson(context, url, null)

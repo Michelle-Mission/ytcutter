@@ -93,7 +93,7 @@ fun SettingsScreen(
             Spacer(Modifier.height(14.dp))
         }
 
-        CategoryLabel("Unduhan")
+        CategoryLabel("Pembaruan")
 
         SettingsRow(
             icon = Icons.Default.SystemUpdate,
@@ -107,6 +107,15 @@ fun SettingsScreen(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        SettingsRow(
+            icon = Icons.Default.History,
+            title = "Changelog",
+            subtitle = "Riwayat perubahan tiap build",
+            onClick = onOpenChangelog
         )
 
         if (crashVisible && lastCrash != null) {
@@ -156,15 +165,6 @@ fun SettingsScreen(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        SettingsRow(
-            icon = Icons.Default.History,
-            title = "Changelog",
-            subtitle = "Riwayat perubahan tiap build",
-            onClick = onOpenChangelog
         )
 
         Spacer(Modifier.height(18.dp))

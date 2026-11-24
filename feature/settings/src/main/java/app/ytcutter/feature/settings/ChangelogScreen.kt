@@ -22,6 +22,13 @@ private data class ChangeEntry(val label: String, val items: List<String>)
 
 private val changes = listOf(
     ChangeEntry(
+        "Build 22",
+        listOf(
+            "Info video diambil paralel: NewPipe dan yt-dlp balapan, yang cepat tampil lebih dulu.",
+            "Bagian Pengaturan \"Unduhan\" jadi \"Pembaruan\" dan Changelog pindah ke situ."
+        )
+    ),
+    ChangeEntry(
         "Build 21",
         listOf(
             "Info video lebih cepat: token YouTube tidak lagi menahan sampai 25 detik dan sesi disiapkan di latar belakang.",
