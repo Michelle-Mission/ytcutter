@@ -114,19 +114,28 @@ private fun HistoryCard(
                     )
                 }
                 Spacer(Modifier.width(10.dp))
-                StatusPill(statusLabel(row.status), row.status == DownloadStatus.FAILED || row.status == DownloadStatus.INTERRUPTED)
+                StatusPill(statusLabel(row), row.status == DownloadStatus.FAILED || row.status == DownloadStatus.INTERRUPTED)
             }
 
             when (row.status) {
                 DownloadStatus.RUNNING -> {
+                    val stageOnly = row.progress < 0
                     Spacer(Modifier.height(12.dp))
-                    LinearProgressIndicator(
-                        progress = { row.progress / 100f },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    if (stageOnly) {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    } else {
+                        LinearProgressIndicator(
+                            progress = { (row.progress.coerceIn(0, 100)) / 100f },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "${row.progress}% ${row.detail.orEmpty()}".trim(),
+                        if (stageOnly) {
+                            row.detail ?: "Memproses..."
+                        } else {
+                            "${row.progress.coerceIn(0, 100)}% ${row.detail.orEmpty()}".trim()
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -185,9 +194,10 @@ private fun HistoryCard(
 }
 
 @Composable
-private fun statusLabel(status: DownloadStatus): String = when (status) {
+private fun statusLabel(row: DownloadRow): String = when (row.status) {
     DownloadStatus.QUEUED -> "Antre"
-    DownloadStatus.RUNNING -> "Berjalan"
+    DownloadStatus.RUNNING ->
+        if (row.progress < 0) (row.detail ?: "Memproses").take(28) else "Mengunduh"
     DownloadStatus.DONE -> "Selesai"
     DownloadStatus.FAILED -> "Gagal"
     DownloadStatus.CANCELED -> "Dibatalkan"

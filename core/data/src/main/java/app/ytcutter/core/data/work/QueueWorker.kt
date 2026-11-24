@@ -23,6 +23,7 @@ import app.ytcutter.core.data.MediaStorePublisher
 import app.ytcutter.core.common.ProgressLine
 import app.ytcutter.core.common.RetryPolicy
 import app.ytcutter.core.common.DeviceProfile
+import app.ytcutter.core.common.StageLine
 import app.ytcutter.core.data.YtDlpRepo
 import app.ytcutter.core.data.cookies.CookiePrefs
 import app.ytcutter.core.model.DownloadRow
@@ -105,8 +106,9 @@ class QueueWorker(
                             DownloadNotifications.progress(
                                 applicationContext,
                                 row.title,
-                                latestPercent,
-                                latestDetail
+                                latestPercent.coerceAtLeast(0),
+                                latestDetail,
+                                indeterminate = latestPercent < 0
                             )
                         )
                     }
@@ -116,10 +118,17 @@ class QueueWorker(
             val exit = try {
                 YtDlpRepo.execute(applicationContext, row.url, args, processId) { line ->
                     lastLine = line
-                    ProgressLine.parse(line)?.let { p ->
-                        latestPercent = p.percent
-                        latestDetail = p.detail
-                        runCatching { repo.updateProgress(row.id, p.percent, p.detail) }
+                    val stage = StageLine.parse(line)
+                    if (stage != null) {
+                        latestPercent = -1
+                        latestDetail = stage
+                        runCatching { repo.updateProgress(row.id, -1, stage) }
+                    } else {
+                        ProgressLine.parse(line)?.let { p ->
+                            latestPercent = p.percent
+                            latestDetail = p.detail
+                            runCatching { repo.updateProgress(row.id, p.percent, p.detail) }
+                        }
                     }
                 }
             } catch (canceled: kotlinx.coroutines.CancellationException) {
@@ -143,6 +152,9 @@ class QueueWorker(
             }
 
             if (!canceled && exit == 0 && outFile.exists() && outFile.length() > 0L) {
+                latestPercent = -1
+                latestDetail = "Menyimpan ke galeri"
+                runCatching { repo.updateProgress(row.id, -1, latestDetail) }
                 val displayName = FileNames.displayName(row.title, row.startSec, row.endSec, ext)
                 val uri = MediaStorePublisher.publish(applicationContext, outFile, displayName, audio)
                 if (uri != null) {
