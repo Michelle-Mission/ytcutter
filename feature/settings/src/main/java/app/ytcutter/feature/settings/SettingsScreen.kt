@@ -22,7 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import app.ytcutter.core.designsystem.ScreenHeader
+import app.ytcutter.core.designsystem.ScreenScaffold
 import app.ytcutter.core.designsystem.SectionHeader
 import app.ytcutter.core.designsystem.SettingsRow
 import app.ytcutter.core.designsystem.UpdateBanner
@@ -64,18 +64,15 @@ fun SettingsScreen(
     val lastCrash = remember { CrashLog.last(context) }
     var crashVisible by remember { mutableStateOf(lastCrash != null) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp)
-            .padding(bottom = 24.dp)
-    ) {
-        ScreenHeader(
-            title = "Pengaturan",
-            horizontalPadding = 0.dp
-        )
-
+    ScreenScaffold(title = "Pengaturan") { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+                .padding(top = 8.dp, bottom = 24.dp)
+        ) {
         if (updateVersion != null) {
             UpdateBanner(
                 version = updateVersion,
@@ -167,6 +164,7 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
         }
     }
 }

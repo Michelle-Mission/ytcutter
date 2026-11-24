@@ -9,19 +9,17 @@ Operate. Tujuan tiap layar: menyelesaikan tugas cepat dan jelas. Konsistensi dan
 
 | Jenis layar | Komponen | Contoh |
 |---|---|---|
-| Tab utama | `ScreenHeader` di dalam konten (judul `headlineSmall`, subjudul `bodySmall`), tanpa TopAppBar | Beranda, Unduhan, Pengaturan |
-| Layar detail | `ScreenScaffold` dengan TopAppBar (judul `titleLarge`, tombol kembali) | Cookie, Komponen, Tentang |
+| Semua halaman | `ScreenScaffold` + TopAppBar: judul `titleLarge` bold, posisi sama | Beranda, Unduhan, Pengaturan, Cookie, Komponen, Tentang |
 | Lembar bawah | Judul `titleMedium` | Pilih format |
-| Status boot | Judul `titleLarge` | Menyiapkan mesin |
+| Status boot | Judul `titleLarge` bold | Menyiapkan mesin |
 
-Padding layar selalu 20dp kiri/kanan. Tab: atas 20dp, bawah 24dp. Detail: TopAppBar menangani atas; konten 20dp.
+Padding layar selalu 20dp kiri/kanan, 8dp atas (di bawah TopAppBar), 24dp bawah. TopAppBar menangani area status bar; tidak ada judul tambahan di dalam konten.
 
 ## Skala tipe
 
 | Peran | Style | Ukuran |
 |---|---|---|
-| Judul layar tab | `headlineSmall` | 26sp bold |
-| Judul layar detail / boot | `titleLarge` | 20sp semibold |
+| Judul halaman (semua) | `titleLarge` | 20sp bold |
 | Judul menonjol (video, sheet) | `titleMedium` | 16sp semibold |
 | Judul kartu/baris | `titleSmall` | 14sp semibold |
 | Isi | `bodyMedium` | 13.5sp |
@@ -43,7 +41,7 @@ Aturan: `titleMedium` hanya untuk judul video/lembar; semua judul kartu dan bari
 
 ## Komponen wajib
 
-- `ScreenHeader`, `ScreenScaffold`, `AppCard`, `SectionHeader`, `StatusPill`, `SettingsRow`, `UpdateBanner`, `UpdateCard`, `CookieStatusLine`.
+- `ScreenScaffold`, `AppCard`, `SectionHeader`, `StatusPill`, `SettingsRow`, `UpdateBanner`, `UpdateCard`, `CookieStatusLine`.
 - Kartu tidak bersarang. Satu `AppCard` per entri.
 - Tombol memakai `MaterialTheme.shapes.small` untuk aksi dalam kartu, `medium` untuk aksi utama.
 

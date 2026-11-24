@@ -42,30 +42,6 @@ object Spacing {
     val card: Dp = 18.dp
 }
 
-@Composable
-fun ScreenHeader(
-    title: String,
-    subtitle: String? = null,
-    horizontalPadding: Dp = Spacing.xl,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(start = horizontalPadding, end = horizontalPadding, top = Spacing.xl, bottom = Spacing.lg)
-    ) {
-        Text(title, style = MaterialTheme.typography.headlineSmall)
-        if (subtitle != null) {
-            Spacer(Modifier.height(Spacing.xs))
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScreenScaffold(

@@ -58,7 +58,7 @@ import androidx.compose.ui.unit.dp
 import app.ytcutter.core.common.TimeCode
 import app.ytcutter.core.designsystem.ShimmerBox
 import app.ytcutter.core.data.VideoInfo
-import app.ytcutter.core.designsystem.ScreenHeader
+import app.ytcutter.core.designsystem.ScreenScaffold
 import coil3.compose.AsyncImage
 
 sealed interface HomeState {
@@ -82,20 +82,23 @@ fun HomeScreen(
     var text by remember { mutableStateOf("") }
     val loading = state is HomeState.Loading
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp)
-            .padding(bottom = 24.dp)
-    ) {
-        ScreenHeader(
-            title = "YT Cutter",
-            subtitle = "Potong video YouTube tanpa unduh penuh",
-            horizontalPadding = 0.dp
-        )
+    ScreenScaffold(title = "YT Cutter") { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+                .padding(top = 8.dp, bottom = 24.dp)
+        ) {
+            Text(
+                "Potong video YouTube tanpa unduh penuh",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(12.dp))
 
-        OutlinedTextField(
+            OutlinedTextField(
             value = text,
             onValueChange = { text = it },
             label = { Text("URL video") },
@@ -194,7 +197,7 @@ fun HomeScreen(
                     shape = MaterialTheme.shapes.large,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(Modifier.padding(20.dp)) {
+                    Row(Modifier.padding(18.dp)) {
                         Icon(
                             Icons.Default.ErrorOutline,
                             contentDescription = null,
@@ -219,6 +222,7 @@ fun HomeScreen(
 
                 is HomeState.Loaded -> VideoCard(current.info, onChooseFormat)
             }
+        }
         }
     }
 }

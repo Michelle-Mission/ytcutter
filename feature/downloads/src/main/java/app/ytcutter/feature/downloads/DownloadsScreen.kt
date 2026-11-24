@@ -1,6 +1,6 @@
 package app.ytcutter.feature.downloads
 
-import app.ytcutter.core.designsystem.ScreenHeader
+import app.ytcutter.core.designsystem.ScreenScaffold
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -49,16 +49,19 @@ fun DownloadsScreen(
     onOpen: (DownloadRow) -> Unit,
     onShare: (DownloadRow) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp)
-    ) {
-        ScreenHeader(
-            title = "Unduhan",
-            subtitle = "Hasil disimpan di galeri: Movies/YT Cutter (audio: Music/YT Cutter)",
-            horizontalPadding = 0.dp
-        )
+    ScreenScaffold(title = "Unduhan") { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 20.dp)
+        ) {
+            Text(
+                "Hasil disimpan di galeri: Movies/YT Cutter (audio: Music/YT Cutter)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(12.dp))
 
         if (rows.isEmpty()) {
             EmptyDownloads()
@@ -79,6 +82,7 @@ fun DownloadsScreen(
                     )
                 }
             }
+        }
         }
     }
 }
