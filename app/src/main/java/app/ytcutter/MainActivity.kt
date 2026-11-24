@@ -266,6 +266,7 @@ private fun AppNavHost() {
             composable(Route.About.path) {
                 AboutScreen(
                     appVersion = AppGraph.appVersion(context),
+                    onOpen = { openUrl(context, it) },
                     onBack = { navController.popBackStack() }
                 )
             }

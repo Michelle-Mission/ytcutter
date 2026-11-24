@@ -14,7 +14,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.ytcutter.core.designsystem.ScreenScaffold
+import app.ytcutter.core.designsystem.SettingsRow
 import app.ytcutter.core.model.ComponentInfo
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
@@ -138,7 +143,11 @@ fun ComponentsScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AboutScreen(appVersion: String, onBack: () -> Unit) {
+fun AboutScreen(
+    appVersion: String,
+    onOpen: (String) -> Unit,
+    onBack: () -> Unit
+) {
     ScreenScaffold(title = "Tentang", onBack = onBack) { padding ->
         Column(
             modifier = Modifier
@@ -160,6 +169,46 @@ fun AboutScreen(appVersion: String, onBack: () -> Unit) {
                     "yt-dlp, dan NewPipe Extractor.",
                 style = MaterialTheme.typography.bodyMedium
             )
+
+            Spacer(Modifier.height(6.dp))
+            SettingsRow(
+                icon = Icons.Default.Favorite,
+                title = "Dukung lewat Trakteer",
+                subtitle = "Tip sukarela untuk pengembang",
+                onClick = { onOpen("https://trakteer.id/nurfilardi") },
+                trailing = { OpenMark() }
+            )
+            SettingsRow(
+                icon = Icons.Default.Person,
+                title = "Pengembang",
+                subtitle = "github.com/nurfilardi",
+                onClick = { onOpen("https://github.com/nurfilardi") },
+                trailing = { OpenMark() }
+            )
+            SettingsRow(
+                icon = Icons.Default.Code,
+                title = "Kode proyek",
+                subtitle = "github.com/nurfilardi/ytcutter",
+                onClick = { onOpen("https://github.com/nurfilardi/ytcutter") },
+                trailing = { OpenMark() }
+            )
+            SettingsRow(
+                icon = Icons.Default.Language,
+                title = "Situs web",
+                subtitle = "nurfilardi.github.io/ytcutter",
+                onClick = { onOpen("https://nurfilardi.github.io/ytcutter/") },
+                trailing = { OpenMark() }
+            )
         }
     }
+}
+
+@Composable
+private fun OpenMark() {
+    Icon(
+        Icons.Default.OpenInNew,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.size(18.dp)
+    )
 }
