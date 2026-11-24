@@ -7,6 +7,7 @@ sealed class Route(val path: String) {
     data object Components : Route("settings/components")
     data object About : Route("settings/about")
     data object Cookies : Route("cookies")
+    data object Changelog : Route("settings/changelog")
 }
 
 object Routes {

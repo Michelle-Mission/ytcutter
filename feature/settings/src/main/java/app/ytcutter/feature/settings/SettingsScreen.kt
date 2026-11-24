@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Cookie
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -53,7 +54,12 @@ fun SettingsScreen(
     onDismissUpdate: () -> Unit,
     onOpenCookies: () -> Unit,
     onOpenComponents: () -> Unit,
-    onOpenAbout: () -> Unit
+    onOpenAbout: () -> Unit,
+    onOpenChangelog: () -> Unit,
+    updateSize: Long? = null,
+    updateStatus: String? = null,
+    updateProgress: Float? = null,
+    updateBusy: Boolean = false
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -77,7 +83,12 @@ fun SettingsScreen(
             UpdateBanner(
                 version = updateVersion,
                 onOpen = onOpenUpdate,
-                onDismiss = onDismissUpdate
+                onDismiss = onDismissUpdate,
+                sizeBytes = updateSize,
+                status = updateStatus,
+                progress = updateProgress,
+                busy = updateBusy,
+                action = if (updateBusy) "Memproses" else "Perbarui"
             )
             Spacer(Modifier.height(14.dp))
         }
@@ -145,6 +156,13 @@ fun SettingsScreen(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        )
+
+        SettingsRow(
+            icon = Icons.Default.History,
+            title = "Changelog",
+            subtitle = "Riwayat perubahan tiap build",
+            onClick = onOpenChangelog
         )
 
         Spacer(Modifier.height(18.dp))

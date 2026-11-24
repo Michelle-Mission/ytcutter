@@ -14,6 +14,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,7 +29,12 @@ fun UpdateBanner(
     version: String,
     onOpen: () -> Unit,
     onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    sizeBytes: Long? = null,
+    status: String? = null,
+    progress: Float? = null,
+    busy: Boolean = false,
+    action: String = "Perbarui"
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -45,15 +51,38 @@ fun UpdateBanner(
                 contentDescription = null,
                 modifier = Modifier.size(20.dp)
             )
-            Text(
-                text = "YT Cutter $version tersedia",
-                style = MaterialTheme.typography.bodyMedium,
+            Column(
                 modifier = Modifier
                     .weight(1f)
                     .padding(horizontal = 12.dp)
-            )
-            TextButton(onClick = onOpen) { Text("Perbarui") }
-            IconButton(onClick = onDismiss) {
+            ) {
+                Text(
+                    text = buildString {
+                        append("YT Cutter $version tersedia")
+                        if (sizeBytes != null) {
+                            append(" · ")
+                            append("%.1f MB".format(sizeBytes / 1024.0 / 1024.0))
+                        }
+                    },
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                if (status != null) {
+                    Text(
+                        text = if (progress != null) "$status ${(progress * 100).toInt()}%" else status,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                if (progress != null) {
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 6.dp)
+                    )
+                }
+            }
+            TextButton(onClick = onOpen, enabled = !busy) { Text(action) }
+            IconButton(onClick = onDismiss, enabled = !busy) {
                 Icon(Icons.Default.Close, contentDescription = "Nanti")
             }
         }

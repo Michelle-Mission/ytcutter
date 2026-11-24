@@ -2,11 +2,9 @@ package app.ytcutter
 
 import android.app.Application
 import android.content.Context
-import app.ytcutter.core.data.AppUpdateRepository
 import app.ytcutter.core.data.ComponentRepository
 import app.ytcutter.core.data.work.UpdateCheckWorker
 import app.ytcutter.core.datastore.UpdatePrefs
-import app.ytcutter.core.network.GitHubReleasesApi
 
 object AppGraph {
 
@@ -20,14 +18,6 @@ object AppGraph {
 
     fun updatePrefs(context: Context): UpdatePrefs = UpdatePrefs(context)
 
-    fun updateRepository(context: Context): AppUpdateRepository =
-        AppUpdateRepository(UpdatePrefs(context), releaseApi())
-
     fun componentRepository(context: Context): ComponentRepository =
-        ComponentRepository(context.applicationContext, appVersion(context), releaseApi())
-
-    private fun releaseApi() = GitHubReleasesApi(OWNER, REPO)
-
-    private const val OWNER = "nurfilardi"
-    private const val REPO = "ytcutter"
+        ComponentRepository(context.applicationContext, appVersion(context))
 }

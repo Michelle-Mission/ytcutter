@@ -2,24 +2,24 @@ package app.ytcutter.core.data
 
 import android.content.Context
 import app.ytcutter.core.model.ComponentInfo
-import app.ytcutter.core.network.GitHubReleasesApi
+import app.ytcutter.core.model.ReleaseInfo
+import app.ytcutter.core.data.update.AppUpdater
 
 class ComponentRepository(
     private val context: Context,
-    private val appVersion: String,
-    private val releaseApi: GitHubReleasesApi
+    private val appVersion: String
 ) {
 
     suspend fun components(): List<ComponentInfo> {
         val ytDlp = runCatching { YtDlpRepo.versionName(context) }.getOrNull()
-        val app = runCatching { releaseApi.latest() }.getOrNull()
+        val app = runCatching { AppUpdater(context).check() }.getOrNull()
         return listOf(
             ComponentInfo(
                 name = "Aplikasi YT Cutter",
                 version = appVersion,
                 updatable = true,
-                note = if (app != null && app.version != appVersion) {
-                    "Rilis terbaru ${app.version}"
+                note = if (app != null) {
+                    "Build ${app.versionCode} siap dipasang"
                 } else {
                     "Tidak ada rilis lebih baru"
                 }
@@ -42,11 +42,14 @@ class ComponentRepository(
     suspend fun updateYtDlp(): String = YtDlpRepo.update(context)
 
     /** Halaman rilis aplikasi terbaru, atau null bila sudah paling baru/gagal. */
-    suspend fun latestRelease(): app.ytcutter.core.model.ReleaseInfo? = runCatching {
-        val latest = releaseApi.latest() ?: return@runCatching null
-        val current = app.ytcutter.core.common.Version.parse(appVersion) ?: return@runCatching null
-        val newer = app.ytcutter.core.common.Version.parse(latest.version) ?: return@runCatching null
-        if (newer > current) latest else null
+    suspend fun latestRelease(): ReleaseInfo? = runCatching {
+        val latest = AppUpdater(context).check() ?: return@runCatching null
+        ReleaseInfo(
+            version = latest.versionName,
+            tag = "build-${latest.versionCode}",
+            url = "https://github.com/${AppUpdater.OWNER}/${AppUpdater.REPO}/releases/latest",
+            notes = latest.notes
+        )
     }.getOrNull()
 
     private companion object {

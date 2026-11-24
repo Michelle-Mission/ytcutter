@@ -72,10 +72,14 @@ import app.ytcutter.core.data.MetadataParser
 import app.ytcutter.core.data.NewPipeMapper
 import app.ytcutter.core.data.YtDlpRepo
 import app.ytcutter.core.data.YouTubeInfo
+import app.ytcutter.core.data.update.ApkInstaller
+import app.ytcutter.core.data.update.AppUpdater
+import app.ytcutter.core.data.update.InstallResult
 import app.ytcutter.core.database.HistoryRepo
 import app.ytcutter.core.designsystem.AuroraBackdrop
 import app.ytcutter.core.designsystem.theme.YtCutterTheme
 import app.ytcutter.core.model.Action
+import app.ytcutter.core.model.AppUpdate
 import app.ytcutter.core.model.ComponentInfo
 import app.ytcutter.core.model.DownloadRequest
 import app.ytcutter.core.model.DownloadStatus
@@ -88,6 +92,7 @@ import app.ytcutter.feature.home.FormatSheet
 import app.ytcutter.feature.home.HomeScreen
 import app.ytcutter.feature.home.HomeState
 import app.ytcutter.feature.settings.AboutScreen
+import app.ytcutter.feature.settings.ChangelogScreen
 import app.ytcutter.feature.settings.ComponentsScreen
 import app.ytcutter.feature.settings.SettingsScreen
 import kotlinx.coroutines.launch
@@ -160,8 +165,47 @@ private fun AppNavHost() {
     val currentRoute = backStackEntry?.destination?.route
     val showBar = !Routes.hidesBottomBar(currentRoute)
 
-    var updateVersion by remember { mutableStateOf<String?>(null) }
-    var updateUrl by remember { mutableStateOf<String?>(null) }
+    var update by remember { mutableStateOf<AppUpdate?>(null) }
+    var updateStatus by remember { mutableStateOf<String?>(null) }
+    var updateProgress by remember { mutableStateOf<Float?>(null) }
+    var updateBusy by remember { mutableStateOf(false) }
+    val updateScope = rememberCoroutineScope()
+
+    fun startUpdate() {
+        val info = update ?: return
+        if (!ApkInstaller.canInstall(context)) {
+            ApkInstaller.openPermissionSettings(context)
+            updateStatus = "Izinkan pemasangan dari aplikasi ini, lalu tekan Perbarui lagi."
+            return
+        }
+        if (updateBusy) return
+        updateBusy = true
+        updateProgress = null
+        updateStatus = "Menyiapkan pembaruan"
+        updateScope.launch {
+            runCatching {
+                val apk = AppUpdater(context).prepare(
+                    info,
+                    onStatus = { updateStatus = it },
+                    onProgress = { updateProgress = it }
+                )
+                updateStatus = "Memasang"
+                updateProgress = null
+                when (val result = ApkInstaller.install(context, apk)) {
+                    InstallResult.Installed -> updateStatus = "Pembaruan terpasang"
+                    InstallResult.Cancelled -> updateStatus = "Pemasangan dibatalkan"
+                    InstallResult.NeedsPermission -> {
+                        updateStatus = "Izinkan pemasangan dari aplikasi ini"
+                        ApkInstaller.openPermissionSettings(context)
+                    }
+                    is InstallResult.Failed -> updateStatus = result.message
+                }
+            }.onFailure {
+                updateStatus = it.message ?: "Pembaruan gagal"
+            }
+            updateBusy = false
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -192,19 +236,30 @@ private fun AppNavHost() {
             }
             composable(Route.Settings.path) {
                 SettingsRoute(
-                    updateVersion = updateVersion,
-                    onOpenUpdate = { updateUrl?.let { openUrl(context, it) } },
+                    updateVersion = update?.versionName,
+                    onOpenUpdate = { startUpdate() },
                     onDismissUpdate = {
-                        AppGraph.updatePrefs(context).ignoredVersion = it
-                        updateVersion = null
+                        update?.let {
+                            AppGraph.updatePrefs(context).ignoredVersion = it.versionCode.toString()
+                        }
+                        update = null
+                        updateStatus = null
                     },
                     onOpenCookies = { navController.navigate(Route.Cookies.path) },
                     onOpenComponents = { navController.navigate(Route.Components.path) },
-                    onOpenAbout = { navController.navigate(Route.About.path) }
+                    onOpenAbout = { navController.navigate(Route.About.path) },
+                    onOpenChangelog = { navController.navigate(Route.Changelog.path) },
+                    updateSize = update?.let { u -> u.patch?.asset?.size ?: u.apk.size },
+                    updateStatus = updateStatus,
+                    updateProgress = updateProgress,
+                    updateBusy = updateBusy
                 )
             }
             composable(Route.Components.path) {
                 ComponentsRoute(navController)
+            }
+            composable(Route.Changelog.path) {
+                ChangelogScreen(onBack = { navController.popBackStack() })
             }
             composable(Route.About.path) {
                 AboutScreen(
@@ -220,13 +275,9 @@ private fun AppNavHost() {
 
     LaunchedEffect(currentRoute) {
         if (currentRoute != Route.Settings.path) return@LaunchedEffect
-        val release = AppGraph.updateRepository(context)
-            .check(AppGraph.appVersion(context))
-        if (release != null &&
-            AppGraph.updatePrefs(context).ignoredVersion != release.version
-        ) {
-            updateVersion = release.version
-            updateUrl = release.url
+        val info = AppUpdater(context).check() ?: return@LaunchedEffect
+        if (AppGraph.updatePrefs(context).ignoredVersion != info.versionCode.toString()) {
+            update = info
         }
     }
 }
@@ -374,7 +425,12 @@ private fun SettingsRoute(
     onDismissUpdate: (String) -> Unit,
     onOpenCookies: () -> Unit,
     onOpenComponents: () -> Unit,
-    onOpenAbout: () -> Unit
+    onOpenAbout: () -> Unit,
+    onOpenChangelog: () -> Unit,
+    updateSize: Long?,
+    updateStatus: String?,
+    updateProgress: Float?,
+    updateBusy: Boolean
 ) {
     val context = LocalContext.current
     SettingsScreen(
@@ -386,7 +442,12 @@ private fun SettingsRoute(
         },
         onOpenCookies = onOpenCookies,
         onOpenComponents = onOpenComponents,
-        onOpenAbout = onOpenAbout
+        onOpenAbout = onOpenAbout,
+        onOpenChangelog = onOpenChangelog,
+        updateSize = updateSize,
+        updateStatus = updateStatus,
+        updateProgress = updateProgress,
+        updateBusy = updateBusy
     )
 }
 

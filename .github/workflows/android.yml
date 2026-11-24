@@ -3,7 +3,7 @@ name: Android
 on:
   push:
     branches: [main]
-    tags: ['v*']
+    tags: ['v*', 'build-*']
   workflow_dispatch:
 
 jobs:
@@ -38,20 +38,115 @@ jobs:
             echo "no KEYSTORE_BASE64 secret; release will use debug signing"
           fi
 
+      - name: Version
+        id: ver
+        run: |
+          echo "name=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)" >> "$GITHUB_OUTPUT"
+          echo "code=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)" >> "$GITHUB_OUTPUT"
+
       - name: Build
         run: gradle --no-daemon testDebugUnitTest assembleRelease
 
-      - name: Release asset name
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: cp app/build/outputs/apk/release/app-release.apk "YT-Cutter-${GITHUB_REF_NAME#v}.apk"
+      - name: Release asset
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk \
+            "YT-Cutter-${{ steps.ver.outputs.name }}-b${{ steps.ver.outputs.code }}.apk"
+
+      - name: Previous build
+        id: prev
+        if: startsWith(github.ref, 'refs/tags/')
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.assets[].browser_download_url' > prev-urls.txt || exit 0
+          APK_URL=$(grep '\.apk$' prev-urls.txt | head -1) || exit 0
+          [ -n "$APK_URL" ] || exit 0
+          curl -fsSL -o prev.apk "$APK_URL"
+          CODE=""
+          if curl -fsSL -o prev-update.json \
+            "https://github.com/$GITHUB_REPOSITORY/releases/latest/download/update.json"; then
+            CODE=$(python3 -c "import json;print(json.load(open('prev-update.json'))['versionCode'])" 2>/dev/null || true)
+          fi
+          if [ -z "$CODE" ]; then
+            BT=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)
+            CODE=$("$ANDROID_HOME/build-tools/$BT/aapt" dump badging prev.apk \
+              | grep -oP "versionCode='\K[0-9]+" | head -1 || true)
+          fi
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "previous versionCode: $CODE"
+
+      - name: Delta patch
+        id: delta
+        if: startsWith(github.ref, 'refs/tags/') && steps.prev.outputs.code != ''
+        env:
+          PREV_CODE: ${{ steps.prev.outputs.code }}
+          NEW_CODE: ${{ steps.ver.outputs.code }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          VNAME: ${{ steps.ver.outputs.name }}
+        run: |
+          set -e
+          sudo apt-get update -qq && sudo apt-get install -y -qq bsdiff
+          APK="YT-Cutter-${VNAME}-b${NEW_CODE}.apk"
+          PATCH="update-b${NEW_CODE}-from-b${PREV_CODE}.patch"
+          bsdiff prev.apk "$APK" "$PATCH"
+          python3 - "$APK" "$PATCH" "$PREV_CODE" "$NEW_CODE" "$REPO" "$TAG" "$VNAME" <<'PY'
+          import hashlib, json, os, sys
+          apk, patch, prev, code, repo, tag, vname = sys.argv[1:8]
+          def info(path):
+              h = hashlib.sha256(open(path,'rb').read()).hexdigest()
+              return h, os.path.getsize(path)
+          ah, asz = info(apk)
+          ph, psz = info(patch)
+          base = f"https://github.com/{repo}/releases/download/{tag}"
+          data = {
+              "versionName": vname,
+              "versionCode": int(code),
+              "notes": "Perbaikan kecil dan pembaruan komponen. Detail di Changelog aplikasi.",
+              "apk": {"name": apk, "url": f"{base}/{apk}", "sha256": ah, "size": asz},
+              "patch": {
+                  "name": patch, "url": f"{base}/{patch}", "sha256": ph,
+                  "size": psz, "fromVersionCode": int(prev),
+              },
+          }
+          json.dump(data, open("update.json","w"), indent=2)
+          print(f"patch {psz} bytes from {prev} to {code}")
+          PY
+
+      - name: Full-only manifest
+        if: startsWith(github.ref, 'refs/tags/') && steps.prev.outputs.code == ''
+        env:
+          REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          VNAME: ${{ steps.ver.outputs.name }}
+          NEW_CODE: ${{ steps.ver.outputs.code }}
+        run: |
+          APK="YT-Cutter-${VNAME}-b${NEW_CODE}.apk"
+          python3 - "$APK" "$REPO" "$TAG" "$VNAME" "$NEW_CODE" <<'PY'
+          import hashlib, json, os, sys
+          apk, repo, tag, vname, code = sys.argv[1:6]
+          h = hashlib.sha256(open(apk,'rb').read()).hexdigest()
+          data = {
+              "versionName": vname,
+              "versionCode": int(code),
+              "notes": "Perbaikan kecil dan pembaruan komponen. Detail di Changelog aplikasi.",
+              "apk": {
+                  "name": apk,
+                  "url": f"https://github.com/{repo}/releases/download/{tag}/{apk}",
+                  "sha256": h,
+                  "size": os.path.getsize(apk),
+              },
+          }
+          json.dump(data, open("update.json","w"), indent=2)
+          PY
 
       - name: Checksum
         run: |
-          if [ -f "YT-Cutter-${GITHUB_REF_NAME#v}.apk" ]; then
-            sha256sum "YT-Cutter-${GITHUB_REF_NAME#v}.apk" | tee sha256.txt
-          else
-            sha256sum app/build/outputs/apk/release/app-release.apk | tee sha256.txt
-          fi
+          APK=$(ls YT-Cutter-*.apk 2>/dev/null | head -1)
+          if [ -n "$APK" ]; then sha256sum "$APK" | tee sha256.txt; else sha256sum app/build/outputs/apk/release/app-release.apk | tee sha256.txt; fi
 
       - uses: actions/upload-artifact@v4
         with:
@@ -59,11 +154,16 @@ jobs:
           path: |
             app/build/outputs/apk/release/app-release.apk
             sha256.txt
+            update.json
+            *.patch
 
       - name: Attach to release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
             YT-Cutter-*.apk
+            update.json
+            *.patch
             sha256.txt
+            CHANGELOG.md
