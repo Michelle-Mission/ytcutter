@@ -95,6 +95,7 @@ import app.ytcutter.feature.settings.AboutScreen
 import app.ytcutter.feature.settings.ChangelogScreen
 import app.ytcutter.feature.settings.ComponentsScreen
 import app.ytcutter.feature.settings.SettingsScreen
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -294,38 +295,51 @@ private fun HomeRoute(navController: NavHostController) {
     val profile = remember { DeviceProfile.of(context) }
     LaunchedEffect(Unit) { if (profile.warmUpTokens) PoToken.warmUp(context) }
 
+    val infoJobs = remember { mutableMapOf<String, Job>() }
+
+    suspend fun fetchInfo(url: String): HomeState {
+        val result = YtDlpRepo.json(context, url)
+        val path = result.json?.let { InfoCache.save(context, url, it) }
+        val info = result.json?.let { MetadataParser.parse(it) }
+        val state = when {
+            info == null -> HomeState.Error(ErrorMapper.map(result.error ?: "").message)
+            info.heights.isEmpty() && !info.hasAudio -> HomeState.Error(
+                "URL ini bukan video tunggal (playlist/kanal). Tempel tautan video."
+            )
+            else -> HomeState.Loaded(info, url, path)
+        }
+        if (state is HomeState.Loaded) InfoCache.putInfo(url, state.info, path)
+        return state
+    }
+
     HomeScreen(
         state = homeState,
         onSubmit = { url ->
             if (!UrlValidator.isYouTube(url)) {
                 homeState = HomeState.Error("Bukan URL YouTube. Tempel tautan video.")
             } else {
-                val cached = InfoCache.getInfo(url)
-                if (cached != null) {
-                    homeState = HomeState.Loaded(
-                        cached.first,
-                        url,
-                        cached.second ?: InfoCache.existingPath(context.cacheDir, url)
-                    )
-                } else {
-                    homeState = HomeState.Loading
-                    scope.launch {
-                        val result = YtDlpRepo.json(context, url)
-                        val path = result.json?.let { InfoCache.save(context, url, it) }
-                        val info = result.json?.let { MetadataParser.parse(it) }
-                        val state = when {
-                            info == null -> HomeState.Error(
-                                ErrorMapper.map(result.error ?: "").message
-                            )
-                            info.heights.isEmpty() && !info.hasAudio -> HomeState.Error(
-                                "URL ini bukan video tunggal (playlist/kanal). " +
-                                    "Tempel tautan video."
-                            )
-                            else -> HomeState.Loaded(info, url, path)
-                        }
-                        if (state is HomeState.Loaded) InfoCache.putInfo(url, state.info, path)
-                        homeState = state
-                    }
+                homeState = HomeState.Loading
+                scope.launch {
+                    // Prefetch saat mengetik/menempel biasanya sudah selesai; tunggu bila masih jalan.
+                    infoJobs[url]?.join()
+                    val cached = InfoCache.getInfo(url)
+                    homeState = cached?.let {
+                        HomeState.Loaded(
+                            it.first,
+                            url,
+                            it.second ?: InfoCache.existingPath(context.cacheDir, url)
+                        )
+                    } ?: fetchInfo(url)
+                }
+            }
+        },
+        onInputChange = { raw ->
+            if (raw.isNotBlank() && UrlValidator.isYouTube(raw) &&
+                InfoCache.getInfo(raw) == null && infoJobs[raw] == null
+            ) {
+                infoJobs[raw] = scope.launch {
+                    runCatching { fetchInfo(raw) }
+                    infoJobs.remove(raw)
                 }
             }
         },

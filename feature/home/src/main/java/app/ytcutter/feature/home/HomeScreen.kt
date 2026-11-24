@@ -78,7 +78,8 @@ sealed interface HomeState {
 fun HomeScreen(
     state: HomeState,
     onSubmit: (String) -> Unit,
-    onChooseFormat: () -> Unit
+    onChooseFormat: () -> Unit,
+    onInputChange: (String) -> Unit = {}
 ) {
     val clipboard = LocalClipboardManager.current
     var text by remember { mutableStateOf("") }
@@ -103,7 +104,10 @@ fun HomeScreen(
 
             OutlinedTextField(
             value = text,
-            onValueChange = { text = it },
+            onValueChange = {
+                text = it
+                onInputChange(it.trim())
+            },
             label = { Text("URL video") },
             placeholder = { Text("https://youtu.be/…") },
             singleLine = true,
@@ -115,7 +119,12 @@ fun HomeScreen(
             keyboardActions = KeyboardActions(onGo = { onSubmit(text.trim()) }),
             trailingIcon = {
                 IconButton(onClick = {
-                    clipboard.getText()?.text?.let { if (it.isNotBlank()) text = it.trim() }
+                    clipboard.getText()?.text?.let {
+                        if (it.isNotBlank()) {
+                            text = it.trim()
+                            onInputChange(text)
+                        }
+                    }
                 }) {
                     Icon(Icons.Default.ContentPaste, contentDescription = "Tempel")
                 }
