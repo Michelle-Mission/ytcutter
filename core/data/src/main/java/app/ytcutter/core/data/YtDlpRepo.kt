@@ -2,7 +2,7 @@ package app.ytcutter.core.data
 
 import android.content.Context
 import app.ytcutter.core.common.DeviceProfile
-import com.yausername.ffmpeg.FFmpeg
+import app.ytcutter.core.data.engine.Engine
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
 import kotlinx.coroutines.Dispatchers
@@ -46,7 +46,7 @@ object YtDlpRepo {
             _state.value = EngineState.Starting
             try {
                 YoutubeDL.getInstance().init(context.applicationContext)
-                runCatching { Aria2.init(context.applicationContext) }
+                runCatching { Engine.prepare(context.applicationContext) }
                 ready = true
                 _state.value = EngineState.Ready
                 Result.success(Unit)
@@ -69,41 +69,6 @@ object YtDlpRepo {
                 if (message == null) name else "$name: $message"
             }
         return "Gagal menyiapkan mesin — $chain"
-    }
-
-    @Volatile
-    private var ffmpegReady = false
-
-    private suspend fun ensureFfmpeg(context: Context) {
-        if (ffmpegReady) return
-        initMutex.withLock {
-            if (ffmpegReady) return@withLock
-            FFmpeg.getInstance().init(context.applicationContext)
-            ffmpegReady = true
-        }
-    }
-
-    suspend fun autoUpdateOnce(context: Context) {
-        if (hasCheckedUpdate(context)) return
-        val result = update(context)
-        if (result == "yt-dlp diperbarui" || result == "yt-dlp sudah terbaru") {
-            markUpdateChecked(context)
-        }
-    }
-
-    fun hasCheckedUpdate(context: Context): Boolean =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getBoolean(KEY_UPDATED, false)
-
-    fun markUpdateChecked(context: Context) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_UPDATED, true).apply()
-    }
-
-    private suspend fun awaitReady(context: Context) {
-        if (ready) return
-        val result = ensureInit(context)
-        result.exceptionOrNull()?.let { throw it }
     }
 
     suspend fun versionName(context: Context): String? = withContext(Dispatchers.IO) {
@@ -171,7 +136,6 @@ object YtDlpRepo {
         onLine: (String) -> Unit = {}
     ): Int = withContext(Dispatchers.IO) {
         awaitReady(context)
-        ensureFfmpeg(context)
         downloadMutex.withLock {
             val fromInfoJson = options.any { it.first == "--load-info-json" }
             val extractorArgs = if (fromInfoJson) null else youtubeArgs(context, url)
@@ -193,15 +157,20 @@ object YtDlpRepo {
         extractorArgs: String?,
         onLine: (String) -> Unit
     ): Int {
-        val request = YoutubeDLRequest(url)
-        extractorArgs?.let { request.addOption("--extractor-args", it) }
+        val args = mutableListOf<String>()
+        extractorArgs?.let {
+            args += "--extractor-args"
+            args += it
+        }
         options.forEach { (option, value) ->
-            if (value == null) request.addOption(option) else request.addOption(option, value)
+            args += option
+            value?.let { args += it }
         }
-        val response = YoutubeDL.getInstance().execute(request, processId) { _, _, line ->
-            if (line.isNotBlank()) onLine(line)
-        }
-        return response.exitCode
+        val layout = Engine.prepare(context)
+        args += "--ffmpeg-location"
+        args += layout.ffmpegBin.absolutePath
+        args += url
+        return Engine.execute(context, args, processId, onLine)
     }
 
     private suspend fun youtubeArgs(
@@ -217,6 +186,6 @@ object YtDlpRepo {
 
     fun cancel(processId: String?): Boolean {
         if (processId == null) return false
-        return runCatching { YoutubeDL.getInstance().destroyProcessById(processId) }.getOrDefault(false)
+        return Engine.cancel(processId)
     }
 }

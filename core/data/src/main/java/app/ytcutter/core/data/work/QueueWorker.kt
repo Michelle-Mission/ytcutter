@@ -64,7 +64,7 @@ class QueueWorker(
 
         var attempt = 0
         var usedFallback = false
-        var ariaEnabled = Aria2.available()
+        var ariaEnabled = Aria2.available(applicationContext)
         while (true) {
             if (ActiveWork.cancelId == row.id) {
                 ActiveWork.cancelId = null
@@ -90,7 +90,7 @@ class QueueWorker(
                 cookies,
                 profile.fragments,
                 fallback = usedFallback,
-                aria2 = if (ariaEnabled) Aria2.args(profile.fragments) else emptyList()
+                aria2 = if (ariaEnabled) Aria2.args(applicationContext, profile.fragments) else emptyList()
             )
 
             var lastLine = ""

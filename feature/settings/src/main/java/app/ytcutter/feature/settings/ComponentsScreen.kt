@@ -69,9 +69,10 @@ fun ComponentsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                "yt-dlp bisa diperbarui langsung dari rilis resmi. FFmpeg, Python, dan " +
-                    "aria2c adalah native library sehingga ikut pembaruan aplikasi; " +
-                    "pembaruan aplikasi memakai patch delta kecil (tidak unduh APK penuh).",
+                "yt-dlp diperbarui langsung dari rilis resmi. FFmpeg, Python, dan aria2c " +
+                    "diambil dari paket komponen terpisah (YT-Cutter-Components.apk) seperti " +
+                    "YTDLnis: pasang sekali dari halaman rilis, pembaruan komponen berikutnya " +
+                    "cukup memasang ulang paket itu tanpa membangun ulang aplikasi.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

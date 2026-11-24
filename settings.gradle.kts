@@ -17,6 +17,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "YT Cutter"
 include(":app")
+include(":components")
 include(
     ":core:model",
     ":core:common",
