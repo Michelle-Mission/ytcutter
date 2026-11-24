@@ -129,7 +129,7 @@ object YtDlpRepo {
     suspend fun json(context: Context, url: String): JsonResult = withContext(Dispatchers.IO) {
         awaitReady(context)
         metaMutex.withLock {
-            val extractorArgs = youtubeArgs(context, url)
+            val extractorArgs = youtubeArgs(context, url, timeoutMs = 4_000)
             val first = runJson(context, url, extractorArgs)
             // poToken/client paksaan bisa ditolak YouTube; ulangi tanpa itu.
             if (first.json != null || extractorArgs == null) first else runJson(context, url, null)
@@ -201,9 +201,13 @@ object YtDlpRepo {
         return response.exitCode
     }
 
-    private suspend fun youtubeArgs(context: Context, url: String): String? {
+    private suspend fun youtubeArgs(
+        context: Context,
+        url: String,
+        timeoutMs: Long = 25_000
+    ): String? {
         if (!app.ytcutter.core.common.UrlValidator.isYouTube(url)) return null
-        val token = PoToken.extractorArgs(context, url) ?: return null
+        val token = PoToken.extractorArgs(context, url, timeoutMs) ?: return null
         // tv_downgraded bikin "The page needs to be reloaded" saat pakai cookies.
         return "youtube:player_client=default,-tv_downgraded;$token"
     }

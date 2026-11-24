@@ -9,6 +9,9 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import app.ytcutter.core.common.UrlValidator
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
@@ -38,6 +41,7 @@ object PoToken {
             "Chrome/131.0.0.0 Safari/537.3"
 
     private val mutex = Mutex()
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Volatile
     private var session: Session? = null
@@ -57,13 +61,32 @@ object PoToken {
             "po_token=web.gvs+${tokens.streaming},web.player+${tokens.player};" +
             "visitor_data=${tokens.visitorData}"
 
-    suspend fun extractorArgs(context: Context, url: String): String? =
-        tokens(context, url)?.let(::buildExtractorArgs)
+    suspend fun extractorArgs(
+        context: Context,
+        url: String,
+        timeoutMs: Long = 25_000
+    ): String? = tokens(context, url, timeoutMs)?.let(::buildExtractorArgs)
 
-    suspend fun tokens(context: Context, url: String): Tokens? {
+    suspend fun tokens(context: Context, url: String, timeoutMs: Long = 25_000): Tokens? {
         val videoId = UrlValidator.videoId(url) ?: return null
-        return runCatching { withTimeout(25_000) { withContext(Dispatchers.IO) { sessionTokens(context, videoId) } } }
-            .getOrNull()
+        return runCatching {
+            withTimeout(timeoutMs) { withContext(Dispatchers.IO) { sessionTokens(context, videoId) } }
+        }.getOrNull()
+    }
+
+    /** Bangun sesi WebView di latar belakang agar permintaan berikutnya cepat. */
+    fun warmUp(context: Context) {
+        val app = context.applicationContext
+        scope.launch {
+            runCatching {
+                mutex.withLock {
+                    val now = System.currentTimeMillis()
+                    if (session?.expiresAt?.let { it > now } != true) {
+                        session = createSession(app)
+                    }
+                }
+            }
+        }
     }
 
     private suspend fun sessionTokens(context: Context, videoId: String): Tokens {

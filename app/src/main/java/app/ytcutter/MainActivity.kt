@@ -96,6 +96,7 @@ import app.ytcutter.feature.settings.ChangelogScreen
 import app.ytcutter.feature.settings.ComponentsScreen
 import app.ytcutter.feature.settings.SettingsScreen
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -297,7 +298,8 @@ private fun HomeRoute(navController: NavHostController) {
             } else {
                 homeState = HomeState.Loading
                 scope.launch {
-                    val fast = YouTubeInfo.fetch(context, url).getOrNull()
+                    val fast = withTimeoutOrNull(8_000) { YouTubeInfo.fetch(context, url) }
+                        ?.getOrNull()
                         ?.takeIf { NewPipeMapper.isUsable(it) }
                     if (fast != null) {
                         homeState = HomeState.Loaded(

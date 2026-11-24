@@ -22,6 +22,13 @@ private data class ChangeEntry(val label: String, val items: List<String>)
 
 private val changes = listOf(
     ChangeEntry(
+        "Build 21",
+        listOf(
+            "Info video lebih cepat: token YouTube tidak lagi menahan sampai 25 detik dan sesi disiapkan di latar belakang.",
+            "APK hasil update diperiksa dulu (valid & tanda tangan sama) supaya tidak muncul \"paket tidak valid\"."
+        )
+    ),
+    ChangeEntry(
         "Build 20",
         listOf("Jarak antar kartu di Pengaturan dirapikan (Changelog dan Cookie tidak lagi dempet).")
     ),

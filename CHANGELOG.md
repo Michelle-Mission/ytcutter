@@ -2,6 +2,10 @@
 
 Semua perubahan kecil tetap di bawah versi `1.0.0`. Nomor versi hanya naik untuk rilis besar.
 
+## Build 21
+- Pencarian info video lebih cepat (poToken timeout 4 dtk + warmup, batas NewPipe 8 dtk).
+- Validasi APK sebelum pemasangan: tolak APK rusak/tanda tangan beda dengan pesan jelas.
+
 ## Build 20
 - Jarak antar kartu di Pengaturan dirapikan.
 

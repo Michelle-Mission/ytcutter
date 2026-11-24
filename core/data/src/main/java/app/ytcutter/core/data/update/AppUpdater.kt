@@ -1,6 +1,7 @@
 package app.ytcutter.core.data.update
 
 import android.content.Context
+import android.content.pm.PackageManager
 import app.ytcutter.core.model.AppUpdate
 import app.ytcutter.core.model.UpdateAsset
 import app.ytcutter.core.network.UpdateManifestApi
@@ -53,6 +54,7 @@ class AppUpdater(private val context: Context) {
                 val out = File(dir, "patched.apk")
                 BsPatch.apply(File(context.applicationInfo.sourceDir), patchFile, out)
                 require(out.matches(update.apk)) { "Hasil patch tidak cocok" }
+                out.validateForInstall()
                 patchFile.delete()
                 out
             }.getOrNull()
@@ -60,14 +62,38 @@ class AppUpdater(private val context: Context) {
             File(dir, "patched.apk").delete()
         }
         onStatus("Mengunduh APK penuh ${mb(update.apk.size)}")
-        HttpDownload.fetch(
+        val full = HttpDownload.fetch(
             update.apk.url,
             File(dir, update.apk.name),
             update.apk.sha256,
             update.apk.size,
             onProgress
         )
+        full.validateForInstall()
+        full
     }
+
+    /** Android menolak APK rusak atau bertanda tangan berbeda ("paket tidak valid"). */
+    private fun File.validateForInstall() {
+        val pm = context.packageManager
+        val flags = PackageManager.GET_SIGNING_CERTIFICATES
+        val archive = pm.getPackageArchiveInfo(absolutePath, flags)
+            ?: error("APK tidak valid")
+        require(archive.packageName == context.packageName) { "Paket APK tidak cocok" }
+        val installed = pm.getPackageInfo(context.packageName, flags)
+        fun signers(info: android.content.pm.PackageInfo): Set<String> =
+            info.signingInfo?.apkContentsSigners
+                ?.map { it.toByteArray().sha256() }
+                ?.toSet()
+                .orEmpty()
+        val expected = signers(installed)
+        require(expected.isNotEmpty() && signers(archive) == expected) {
+            "Tanda tangan APK berbeda"
+        }
+    }
+
+    private fun ByteArray.sha256(): String =
+        MessageDigest.getInstance("SHA-256").digest(this).joinToString("") { "%02x".format(it) }
 
     fun clearCache() {
         runCatching { File(context.cacheDir, "update").deleteRecursively() }
