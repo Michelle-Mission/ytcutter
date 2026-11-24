@@ -15,7 +15,7 @@ class UpdateManifestApi(
 
     suspend fun latest(): AppUpdate? = withContext(Dispatchers.IO) {
         val request = Request.Builder()
-            .url("https://github.com/$owner/$repo/releases/latest/download/update.json")
+            .url("https://$owner.github.io/$repo/update.json")
             .header("Accept", "application/json")
             .build()
         runCatching {

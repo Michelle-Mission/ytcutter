@@ -12,54 +12,36 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.ytcutter.core.designsystem.ScreenScaffold
 import app.ytcutter.core.designsystem.SectionHeader
 import app.ytcutter.core.designsystem.Spacing
+import app.ytcutter.core.model.ChangeEntry
 
-private data class ChangeEntry(val label: String, val items: List<String>)
-
-private val changes = listOf(
-    ChangeEntry(
-        "Build 22",
-        listOf(
-            "Info video diambil paralel: NewPipe dan yt-dlp balapan, yang cepat tampil lebih dulu.",
-            "Bagian Pengaturan \"Unduhan\" jadi \"Pembaruan\" dan Changelog pindah ke situ."
-        )
-    ),
-    ChangeEntry(
-        "Build 21",
-        listOf(
-            "Info video lebih cepat: token YouTube tidak lagi menahan sampai 25 detik dan sesi disiapkan di latar belakang.",
-            "APK hasil update diperiksa dulu (valid & tanda tangan sama) supaya tidak muncul \"paket tidak valid\"."
-        )
-    ),
-    ChangeEntry(
-        "Build 20",
-        listOf("Jarak antar kartu di Pengaturan dirapikan (Changelog dan Cookie tidak lagi dempet).")
-    ),
-    ChangeEntry(
-        "Build 19",
-        listOf(
-            "Pembaruan aplikasi memakai patch delta: unduhan lebih kecil, APK penuh hanya untuk cadangan.",
-            "Changelog bisa dibaca langsung di aplikasi."
-        )
-    ),
+private val fallbackChanges = listOf(
     ChangeEntry(
         "1.0.0",
         listOf(
-            "Satu sistem desain untuk semua halaman: judul, kartu, jarak, dan status seragam.",
-            "Tipografi lebih besar dan mudah dibaca.",
-            "Perbaikan cookie: jumlah akurat, login langsung tersimpan.",
-            "Cek pembaruan harian lewat notifikasi.",
-            "Arsitektur modular dengan 27 suite unit test."
+            "Rilis pertama YT Cutter.",
+            "Potong dan unduh video YouTube tanpa mengunduh bagian yang tidak dipakai.",
+            "Update delta: unduhan kecil, APK penuh hanya sebagai cadangan.",
+            "Konfigurasi jarak jauh: pengumuman, maintenance, dan feature flag dari GitHub Pages.",
+            "Changelog, status komponen, dan pemeriksaan pembaruan di dalam aplikasi.",
+            "Dukungan cookie YouTube untuk video yang butuh login."
         )
     )
 )
-
 @Composable
-fun ChangelogScreen(onBack: () -> Unit) {
+fun ChangelogScreen(
+    remoteEntries: suspend () -> List<ChangeEntry>? = { null },
+    onBack: () -> Unit
+) {
+    val changes by produceState(fallbackChanges, remoteEntries) {
+        value = remoteEntries() ?: fallbackChanges
+    }
     ScreenScaffold(title = "Changelog", onBack = onBack) { padding ->
         Column(
             modifier = Modifier

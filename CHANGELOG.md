@@ -1,43 +1,10 @@
 # Changelog
 
-Semua perubahan kecil tetap di bawah versi `1.0.0`. Nomor versi hanya naik untuk rilis besar.
-
-## Build 22
-- Info video paralel (NewPipe vs yt-dlp), token YouTube 2,5 dtk.
-- Pengaturan: bagian Pembaruan berisi Komponen + Changelog.
-
-## Build 21
-- Pencarian info video lebih cepat (poToken timeout 4 dtk + warmup, batas NewPipe 8 dtk).
-- Validasi APK sebelum pemasangan: tolak APK rusak/tanda tangan beda dengan pesan jelas.
-
-## Build 20
-- Jarak antar kartu di Pengaturan dirapikan.
-
-## Build 19
-- Pembaruan delta (patch bsdiff), pasang via PackageInstaller.
-- Changelog di dalam aplikasi.
-
 ## 1.0.0
 
-### UI
-- Satu sistem desain untuk semua layar lewat `ScreenScaffold` + `TopAppBar`: judul `titleLarge` bold 22sp, padding konten 20dp samping, 4dp atas, 24dp bawah.
-- `ScreenHeader` dihapus; kartu (`AppCard`, padding 18dp), baris (`SettingsRow`, 16/12dp), dan status (`StatusPill`) kini seragam.
-- Skala tipografi dibesarkan: titleMedium 18, titleSmall 15, bodyMedium 15, bodySmall 13, labelLarge 14, labelSmall 12.
-- Halaman Komponen & Tentang ditambahkan; banner update dan status cookie memakai komponen bersama.
-
-### Cookie
-- Jumlah cookie dibaca dari database setiap `onPageFinished`.
-- Login selesai menunggu 800 ms lalu menyimpan cookie + menutup halaman.
-- Penyimpanan cookie idempoten (`findIdByContent`).
-
-### Update
-- Cek rilis harian via `UpdateCheckWorker` + notifikasi.
-- Banner update per halaman dengan tombol buka rilis.
-
-### Arsitektur
-- Modularisasi 14 modul (`:app`, `:core:*`, `:feature:*`) dengan DI manual `AppGraph`.
-- Semua 27 suite unit test lulus.
-
-## Catatan rilis berikutnya
-- Perbaikan kecil tidak mengubah `versionName`; hanya `versionCode` naik agar Android mau memasang update.
-- Rencana update delta (unduh patch, bukan APK penuh) menyusul.
+- Rilis pertama YT Cutter.
+- Potong dan unduh video YouTube tanpa mengunduh bagian yang tidak dipakai.
+- Update delta: unduhan kecil, APK penuh hanya sebagai cadangan.
+- Konfigurasi jarak jauh: pengumuman, maintenance, dan feature flag dari GitHub Pages.
+- Changelog, status komponen, dan pemeriksaan pembaruan di dalam aplikasi.
+- Dukungan cookie YouTube untuk video yang butuh login.

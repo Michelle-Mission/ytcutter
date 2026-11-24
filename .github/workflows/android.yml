@@ -22,7 +22,7 @@ jobs:
       - name: Android SDK
         run: |
           echo "ANDROID_HOME=${ANDROID_HOME:-/usr/local/lib/android/sdk}" >> "$GITHUB_ENV"
-          ls "${ANDROID_HOME:-/usr/local/lib/android/sdk}/platforms" || true
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.14.8'
@@ -50,8 +50,7 @@ jobs:
       - name: Release asset
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          cp app/build/outputs/apk/release/app-release.apk \
-            "YT-Cutter-${{ steps.ver.outputs.name }}-b${{ steps.ver.outputs.code }}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "YT-Cutter-${{ steps.ver.outputs.name }}.apk"
 
       - name: Previous build
         id: prev
@@ -65,16 +64,8 @@ jobs:
           APK_URL=$(grep '\.apk$' prev-urls.txt | head -1) || exit 0
           [ -n "$APK_URL" ] || exit 0
           curl -fsSL -o prev.apk "$APK_URL"
-          CODE=""
-          if curl -fsSL -o prev-update.json \
-            "https://github.com/$GITHUB_REPOSITORY/releases/latest/download/update.json"; then
-            CODE=$(python3 -c "import json;print(json.load(open('prev-update.json'))['versionCode'])" 2>/dev/null || true)
-          fi
-          if [ -z "$CODE" ]; then
-            BT=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)
-            CODE=$("$ANDROID_HOME/build-tools/$BT/aapt" dump badging prev.apk \
-              | grep -oP "versionCode='\K[0-9]+" | head -1 || true)
-          fi
+          curl -fsSL -o prev-update.json "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/update.json" || true
+          CODE=$(python3 -c "import json;print(json.load(open('prev-update.json'))['versionCode'])" 2>/dev/null || true)
           echo "code=$CODE" >> "$GITHUB_OUTPUT"
           echo "previous versionCode: $CODE"
 
@@ -84,58 +75,62 @@ jobs:
         env:
           PREV_CODE: ${{ steps.prev.outputs.code }}
           NEW_CODE: ${{ steps.ver.outputs.code }}
-          REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
           TAG: ${{ github.ref_name }}
           VNAME: ${{ steps.ver.outputs.name }}
         run: |
           set -e
           sudo apt-get update -qq && sudo apt-get install -y -qq bsdiff
-          APK="YT-Cutter-${VNAME}-b${NEW_CODE}.apk"
+          APK="YT-Cutter-${VNAME}.apk"
           PATCH="update-b${NEW_CODE}-from-b${PREV_CODE}.patch"
           bsdiff prev.apk "$APK" "$PATCH"
-          python3 - "$APK" "$PATCH" "$PREV_CODE" "$NEW_CODE" "$REPO" "$TAG" "$VNAME" <<'PY'
+          python3 - "$APK" "$PATCH" "$PREV_CODE" "$NEW_CODE" "$OWNER" "$REPO" "$TAG" "$VNAME" <<'PY'
           import hashlib, json, os, sys
-          apk, patch, prev, code, repo, tag, vname = sys.argv[1:8]
+          apk, patch, prev, code, owner, repo, tag, vname = sys.argv[1:9]
           def info(path):
-              h = hashlib.sha256(open(path,'rb').read()).hexdigest()
-              return h, os.path.getsize(path)
+              return hashlib.sha256(open(path,'rb').read()).hexdigest(), os.path.getsize(path)
           ah, asz = info(apk)
           ph, psz = info(patch)
-          base = f"https://github.com/{repo}/releases/download/{tag}"
+          base = f"https://github.com/{owner}/{repo}/releases/download/{tag}"
+          pages = f"https://{owner}.github.io/{repo}"
           data = {
               "versionName": vname,
               "versionCode": int(code),
-              "notes": "Perbaikan kecil dan pembaruan komponen. Detail di Changelog aplikasi.",
+              "notes": "Rilis pertama YT Cutter. Detail di Changelog aplikasi.",
               "apk": {"name": apk, "url": f"{base}/{apk}", "sha256": ah, "size": asz},
               "patch": {
-                  "name": patch, "url": f"{base}/{patch}", "sha256": ph,
-                  "size": psz, "fromVersionCode": int(prev),
+                  "name": "latest.patch", "url": f"{pages}/deltas/latest.patch",
+                  "sha256": ph, "size": psz, "fromVersionCode": int(prev),
               },
           }
           json.dump(data, open("update.json","w"), indent=2)
+          os.makedirs("published/deltas", exist_ok=True)
+          os.replace(patch, "published/deltas/latest.patch")
           print(f"patch {psz} bytes from {prev} to {code}")
           PY
 
       - name: Full-only manifest
         if: startsWith(github.ref, 'refs/tags/') && steps.prev.outputs.code == ''
         env:
-          REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
           TAG: ${{ github.ref_name }}
           VNAME: ${{ steps.ver.outputs.name }}
           NEW_CODE: ${{ steps.ver.outputs.code }}
         run: |
-          APK="YT-Cutter-${VNAME}-b${NEW_CODE}.apk"
-          python3 - "$APK" "$REPO" "$TAG" "$VNAME" "$NEW_CODE" <<'PY'
+          APK="YT-Cutter-${VNAME}.apk"
+          python3 - "$APK" "$OWNER" "$REPO" "$TAG" "$VNAME" "$NEW_CODE" <<'PY'
           import hashlib, json, os, sys
-          apk, repo, tag, vname, code = sys.argv[1:6]
+          apk, owner, repo, tag, vname, code = sys.argv[1:7]
           h = hashlib.sha256(open(apk,'rb').read()).hexdigest()
           data = {
               "versionName": vname,
               "versionCode": int(code),
-              "notes": "Perbaikan kecil dan pembaruan komponen. Detail di Changelog aplikasi.",
+              "notes": "Rilis pertama YT Cutter. Detail di Changelog aplikasi.",
               "apk": {
                   "name": apk,
-                  "url": f"https://github.com/{repo}/releases/download/{tag}/{apk}",
+                  "url": f"https://github.com/{owner}/{repo}/releases/download/{tag}/{apk}",
                   "sha256": h,
                   "size": os.path.getsize(apk),
               },
@@ -143,27 +138,37 @@ jobs:
           json.dump(data, open("update.json","w"), indent=2)
           PY
 
-      - name: Checksum
+      - name: Attach APK to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: YT-Cutter-*.apk
+
+      - name: Publish manifest to GitHub Pages
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
-          APK=$(ls YT-Cutter-*.apk 2>/dev/null | head -1)
-          if [ -n "$APK" ]; then sha256sum "$APK" | tee sha256.txt; else sha256sum app/build/outputs/apk/release/app-release.apk | tee sha256.txt; fi
+          set -e
+          mkdir -p /tmp/pub/deltas
+          cp update.json /tmp/pub/update.json
+          [ -f published/deltas/latest.patch ] && cp published/deltas/latest.patch /tmp/pub/deltas/latest.patch || true
+          git config user.name "github-actions"
+          git config user.email "actions@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p docs/deltas
+          cp /tmp/pub/update.json docs/update.json
+          if [ -f /tmp/pub/deltas/latest.patch ]; then cp /tmp/pub/deltas/latest.patch docs/deltas/latest.patch; fi
+          git add docs/update.json docs/deltas/latest.patch
+          if git diff --cached --quiet; then
+            echo "manifest tidak berubah"
+          else
+            git commit -m "chore: manifest rilis ${TAG} [skip ci]"
+            git push origin main
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
           name: ytcutter-apk
-          path: |
-            app/build/outputs/apk/release/app-release.apk
-            sha256.txt
-            update.json
-            *.patch
-
-      - name: Attach to release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            YT-Cutter-*.apk
-            update.json
-            *.patch
-            sha256.txt
-            CHANGELOG.md
+          path: app/build/outputs/apk/release/app-release.apk

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "maintenance": {
+    "enabled": false,
+    "message": "Layanan sedang diperbaiki. Coba lagi beberapa saat lagi."
+  },
+  "announcement": {
+    "id": "",
+    "title": "",
+    "message": "",
+    "url": ""
+  },
+  "features": {
+    "downloader": true,
+    "player": true
+  },
+  "minVersionCode": 0
+}

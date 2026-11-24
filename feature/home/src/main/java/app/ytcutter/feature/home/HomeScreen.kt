@@ -24,6 +24,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Movie
@@ -39,6 +40,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import app.ytcutter.core.common.TimeCode
 import app.ytcutter.core.designsystem.ShimmerBox
 import app.ytcutter.core.data.VideoInfo
+import app.ytcutter.core.model.Announcement
 import app.ytcutter.core.designsystem.ScreenScaffold
 import coil3.compose.AsyncImage
 
@@ -76,7 +79,10 @@ sealed interface HomeState {
 fun HomeScreen(
     state: HomeState,
     onSubmit: (String) -> Unit,
-    onChooseFormat: () -> Unit
+    onChooseFormat: () -> Unit,
+    announcement: Announcement? = null,
+    onDismissAnnouncement: () -> Unit = {},
+    onOpenAnnouncement: (String) -> Unit = {}
 ) {
     val clipboard = LocalClipboardManager.current
     var text by remember { mutableStateOf("") }
@@ -96,6 +102,42 @@ fun HomeScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            if (announcement != null) {
+                Spacer(Modifier.height(12.dp))
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(start = 16.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            if (announcement.title.isNotBlank()) {
+                                Text(
+                                    announcement.title,
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                            }
+                            Text(
+                                announcement.message,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            announcement.url?.let { link ->
+                                TextButton(onClick = { onOpenAnnouncement(link) }) {
+                                    Text("Buka")
+                                }
+                            }
+                        }
+                        IconButton(onClick = onDismissAnnouncement) {
+                            Icon(Icons.Default.Close, contentDescription = "Tutup")
+                        }
+                    }
+                }
+            }
             Spacer(Modifier.height(8.dp))
 
             OutlinedTextField(
