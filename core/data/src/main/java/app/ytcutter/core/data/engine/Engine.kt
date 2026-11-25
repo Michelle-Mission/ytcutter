@@ -142,6 +142,18 @@ object Engine {
         }
     }
 
+    /** Versi yt-dlp dari skrip yang benar-benar dipakai (bukan pref pustaka). */
+    fun version(context: Context): String? = runCatching {
+        val l = prepare(context)
+        if (!l.pythonBin.isFile || !l.script.isFile) return null
+        val process = ProcessBuilder(l.pythonBin.absolutePath, l.script.absolutePath, "--version")
+            .redirectErrorStream(true)
+            .start()
+        val line = process.inputStream.bufferedReader().use { it.readLine() }
+        if (!process.waitFor(20, TimeUnit.SECONDS)) process.destroyForcibly()
+        line?.trim()?.takeIf { it.isNotEmpty() && !it.contains(' ') }
+    }.getOrNull()
+
     fun cancel(processId: String?): Boolean {
         if (processId == null) return false
         return processes.remove(processId)?.let { runCatching { it.destroy(); true }.getOrDefault(false) }

@@ -3,6 +3,8 @@ package app.ytcutter.core.data
 import android.content.Context
 import app.ytcutter.core.common.DeviceProfile
 import app.ytcutter.core.data.engine.Engine
+import app.ytcutter.core.data.update.HttpDownload
+import app.ytcutter.core.network.HttpClient
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
 import kotlinx.coroutines.Dispatchers
@@ -12,6 +14,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import okhttp3.Request
+import java.io.File
 import java.util.UUID
 
 sealed interface EngineState {
@@ -78,23 +82,43 @@ object YtDlpRepo {
 
     suspend fun versionName(context: Context): String? = withContext(Dispatchers.IO) {
         awaitReady(context)
-        initMutex.withLock {
-            runCatching { YoutubeDL.getInstance().versionName(context) }.getOrNull()
-        }
+        initMutex.withLock { Engine.version(context) }
     }
 
-    // ponytail: update hanya dikunci initMutex; menimpa binary saat proses lain
-    // berjalan aman di Linux (inode tetap). Serialkan penuh jika muncul race nyata.
+    // ponytail: unduh langsung dari rilis GitHub, bukan API /releases/latest yang
+    // sering kena 403 rate limit. Ganti pembaruan bila perlu kanal nightly.
     suspend fun update(context: Context): String = withContext(Dispatchers.IO) {
         awaitReady(context)
         initMutex.withLock {
             runCatching {
-                when (YoutubeDL.getInstance().updateYoutubeDL(context, YoutubeDL.UpdateChannel.STABLE)) {
-                    YoutubeDL.UpdateStatus.DONE -> "yt-dlp diperbarui"
-                    YoutubeDL.UpdateStatus.ALREADY_UP_TO_DATE -> "yt-dlp sudah terbaru"
-                    null -> "Gagal memperbarui yt-dlp"
+                val base = "https://github.com/yt-dlp/yt-dlp/releases/latest/download"
+                val sums = HttpClient.client.newCall(Request.Builder().url("$base/SHA2-256SUMS").build())
+                    .execute().use { response ->
+                        if (!response.isSuccessful) error("Daftar checksum gagal (HTTP ${response.code})")
+                        response.body?.string().orEmpty()
+                    }
+                val sha = sums.lineSequence()
+                    .map { it.trim().split(Regex("\\s+")) }
+                    .firstOrNull { it.size >= 2 && it.last() == "yt-dlp" }
+                    ?.first()
+                    ?: error("Checksum yt-dlp tidak ditemukan")
+                val target = Engine.prepare(context).script
+                val staged = File(target.parentFile, "yt-dlp.download")
+                HttpDownload.fetch("$base/yt-dlp", staged, sha, 0)
+                val backup = File(target.parentFile, "yt-dlp.prev")
+                backup.delete()
+                if (target.isFile && !target.renameTo(backup)) error("Tidak bisa menulis berkas yt-dlp")
+                if (!staged.renameTo(target)) {
+                    backup.renameTo(target)
+                    error("Tidak bisa mengganti berkas yt-dlp")
                 }
-            }.getOrElse { "Gagal: ${it.message}" }
+                backup.delete()
+                val version = Engine.version(context)
+                if (version == null) {
+                    error("yt-dlp baru tidak bisa dijalankan")
+                }
+                "yt-dlp diperbarui ke $version"
+            }.getOrElse { "Gagal memperbarui yt-dlp: ${it.message ?: it.javaClass.simpleName}" }
         }
     }
 
