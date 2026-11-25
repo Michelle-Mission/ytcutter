@@ -102,24 +102,7 @@ object Engine {
         command += l.pythonBin.absolutePath
         command += l.script.absolutePath
         command += args
-        val process = ProcessBuilder(command)
-            .redirectErrorStream(false)
-            .apply {
-                val env = environment()
-                env["LD_LIBRARY_PATH"] = listOf(
-                    File(l.pythonHome, "usr/lib"),
-                    File(l.pythonHome, "lib"),
-                    File(File(app.noBackupFilesDir, "engine/ffmpeg"), "usr/lib"),
-                    File(File(app.noBackupFilesDir, "engine/aria2c"), "usr/lib")
-                ).joinToString(":") { it.absolutePath }
-                l.cert?.let { env["SSL_CERT_FILE"] = it.absolutePath }
-                env["PYTHONHOME"] = File(l.pythonHome, "usr").absolutePath
-                env["HOME"] = File(l.pythonHome, "usr").absolutePath
-                env["TMPDIR"] = app.cacheDir.absolutePath
-                env["PATH"] = (System.getenv("PATH") ?: "/system/bin") +
-                    ":" + l.binDir.absolutePath
-            }
-            .start()
+        val process = builder(l, app, command).redirectErrorStream(false).start()
         processes[processId] = process
         val stderr = StringBuilder()
         val errThread = Thread {
@@ -144,15 +127,37 @@ object Engine {
 
     /** Versi yt-dlp dari skrip yang benar-benar dipakai (bukan pref pustaka). */
     fun version(context: Context): String? = runCatching {
-        val l = prepare(context)
+        val app = context.applicationContext
+        val l = prepare(app)
         if (!l.pythonBin.isFile || !l.script.isFile) return null
-        val process = ProcessBuilder(l.pythonBin.absolutePath, l.script.absolutePath, "--version")
-            .redirectErrorStream(true)
-            .start()
-        val line = process.inputStream.bufferedReader().use { it.readLine() }
+        val process = builder(
+            l, app, listOf(l.pythonBin.absolutePath, l.script.absolutePath, "--version")
+        ).redirectErrorStream(true).start()
+        val line = process.inputStream.bufferedReader().use { reader ->
+            reader.lineSequence().take(20).firstOrNull { VERSION.matches(it.trim()) }
+        }
         if (!process.waitFor(20, TimeUnit.SECONDS)) process.destroyForcibly()
-        line?.trim()?.takeIf { it.isNotEmpty() && !it.contains(' ') }
+        if (runCatching { process.exitValue() }.getOrDefault(-1) != 0) null else line?.trim()
     }.getOrNull()
+
+    private val VERSION = Regex("[0-9][0-9A-Za-z.\\-]*")
+
+    /** Proses dengan env python/ffmpeg/aria2c yang sama untuk semua pemakaian. */
+    private fun builder(l: Layout, app: Context, command: List<String>): ProcessBuilder =
+        ProcessBuilder(command).apply {
+            val env = environment()
+            env["LD_LIBRARY_PATH"] = listOf(
+                File(l.pythonHome, "usr/lib"),
+                File(l.pythonHome, "lib"),
+                File(File(app.noBackupFilesDir, "engine/ffmpeg"), "usr/lib"),
+                File(File(app.noBackupFilesDir, "engine/aria2c"), "usr/lib")
+            ).joinToString(":") { it.absolutePath }
+            l.cert?.let { env["SSL_CERT_FILE"] = it.absolutePath }
+            env["PYTHONHOME"] = File(l.pythonHome, "usr").absolutePath
+            env["HOME"] = File(l.pythonHome, "usr").absolutePath
+            env["TMPDIR"] = app.cacheDir.absolutePath
+            env["PATH"] = (System.getenv("PATH") ?: "/system/bin") + ":" + l.binDir.absolutePath
+        }
 
     fun cancel(processId: String?): Boolean {
         if (processId == null) return false

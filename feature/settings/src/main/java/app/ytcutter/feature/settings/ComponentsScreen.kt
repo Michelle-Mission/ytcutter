@@ -68,13 +68,6 @@ fun ComponentsScreen(
                 .padding(top = 4.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                "yt-dlp diperbarui langsung dari rilis resmi tanpa memasang ulang aplikasi. " +
-                    "FFmpeg, Python, dan aria2c sudah menyatu di dalam APK ini.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
             components.forEach { item ->
                 Card(shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(18.dp)) {
