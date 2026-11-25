@@ -107,11 +107,16 @@ jobs:
           import hashlib, json, os, sys
           owner, repo, tag, vname, code, patch, prev = sys.argv[1:8]
           apk = f"YT-Cutter-{vname}.apk"
+          try:
+              notes = open("RELEASE_NOTES.md").read().strip()
+          except FileNotFoundError:
+              notes = ""
+          notes = notes or "Lihat catatan rilis di halaman GitHub."
           base = f"https://github.com/{owner}/{repo}/releases/download/{tag}"
           data = {
               "versionName": vname,
               "versionCode": int(code),
-              "notes": "Lihat catatan rilis di halaman GitHub.",
+              "notes": notes,
               "apk": {
                   "name": apk,
                   "url": f"{base}/{apk}",
@@ -136,6 +141,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
+          body_path: RELEASE_NOTES.md
           make_latest: true
           files: |
             YT-Cutter-*.apk

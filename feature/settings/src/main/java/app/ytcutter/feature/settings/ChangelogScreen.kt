@@ -25,10 +25,16 @@ private val changes = listOf(
         "1.0.0",
         listOf(
             "Rilis pertama YT Cutter.",
-            "Potong dan unduh video YouTube tanpa mengunduh bagian yang tidak dipakai.",
+            "Potong dan unduh hanya rentang waktu yang dipilih, langsung ke galeri.",
+            "Pilihan tinggi video dan audio saja.",
+            "Cookie YouTube untuk video yang butuh login, plus poToken.",
+            "Unduhan tahan gangguan: aria2c multi-koneksi, retry berlapis, " +
+                "fallback ke format progresif.",
+            "Status bertahap ala yt-dlp dengan progres dari byte/estimasi/fragmen.",
             "Pembaruan delta: unduhan kecil, APK penuh hanya sebagai cadangan.",
-            "Status komponen dan pemeriksaan pembaruan di dalam aplikasi.",
-            "Dukungan cookie YouTube untuk video yang butuh login."
+            "yt-dlp diperbarui dari dalam aplikasi dengan verifikasi SHA-256.",
+            "FFmpeg, Python, dan aria2c menyatu di APK.",
+            "Performa menyesuaikan perangkat kecil; info video dimuat lebih awal."
         )
     )
 )
